@@ -4,3 +4,11 @@ __pycache__/
 *.sqlite3
 private_storage/
 .env
+staticfiles/
+logs/
+*.log
+.ruff_cache/
+.vercel/
+.env.*
+!.env.example
+demo-credentials.txt

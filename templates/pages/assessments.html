@@ -12,7 +12,7 @@
     <span class="pill purple">{{ a.area }}</span>
     <div class="exam-symbol">◇</div>
     <h2>{{ a.title }}</h2>
-    <p>{{ a.questions.count }} preguntas · {{ a.minutes }} minutos<br>Aprobación: {{ a.pass_score }}% · Selección única</p>
+    <p>{{ a.question_count }} preguntas · {{ a.minutes }} minutos<br>Aprobación: {{ a.pass_score }}% · Selección única</p>
     <form method="post" action="/exam/{{ a.pk }}/start/">{% csrf_token %}<button class="btn-primary full">Iniciar / reanudar evaluación →</button></form>
   </article>
   {% endfor %}

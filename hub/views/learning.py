@@ -126,7 +126,7 @@ def qa_advanced_week(request, week):
 
 
 def paths(request, section):
-    return 'pages/paths.html', {'paths': LearningPath.objects.all()}
+    return 'pages/paths.html', {'paths': LearningPath.objects.prefetch_related('lessons')}
 
 
 def lessons(request, section):

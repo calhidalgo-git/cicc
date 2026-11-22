@@ -5,6 +5,7 @@ from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from django.db.models import Count
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -15,7 +16,9 @@ from .common import ctx, log
 
 
 def assessments(request, section):
-    return 'pages/assessments.html', {'assessments': Assessment.objects.all()}
+    return 'pages/assessments.html', {
+        'assessments': Assessment.objects.annotate(question_count=Count('questions'))
+    }
 
 
 def attempt_history(request, section):

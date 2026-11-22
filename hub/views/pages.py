@@ -5,7 +5,7 @@ Cada función devuelve (plantilla, contexto) y consulta solo lo que usa su plant
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User
-from django.db.models import Count, F
+from django.db.models import Count, F, Prefetch, Q
 from django.http import Http404, HttpResponse
 from django.shortcuts import render
 
@@ -15,7 +15,6 @@ from ..models import (
     Attempt,
     Audit,
     LearningPath,
-    Lesson,
     Progress,
     Question,
     Resource,
@@ -27,6 +26,13 @@ from .common import ctx
 
 def dashboard(request, section):
     published = Resource.objects.filter(published=True)
+    # Total de recursos (publicados o no, como antes) y áreas de especialización con recursos
+    # publicados, sin Transversal, en una sola consulta.
+    totals = Resource.objects.aggregate(
+        total=Count('pk'),
+        areas=Count('area', distinct=True, filter=Q(published=True) & ~Q(area='Transversal')),
+    )
+    paths = list(LearningPath.objects.annotate(lesson_count=Count('lessons')))
     assessments = list(
         Assessment.objects.annotate(question_count=Count('questions')).order_by('pk')
     )
@@ -41,14 +47,17 @@ def dashboard(request, section):
     )
     return 'pages/dashboard.html', {
         'resources': published,
-        'resource_count': Resource.objects.count(),
+        'resource_count': totals['total'],
         'progress_count': Progress.objects.filter(user=request.user).count(),
         'assessment_count': len(assessments),
-        'lesson_count': Lesson.objects.count(),
+        # Toda lección pertenece a una ruta: el total sale de las rutas ya cargadas.
+        'lesson_count': sum(path.lesson_count for path in paths),
         # Áreas de especialización: las distintas de Transversal que tienen recursos publicados.
-        'area_count': published.exclude(area='Transversal').values('area').distinct().count(),
+        'area_count': totals['areas'],
         'recommended': recommended,
-        'paths': LearningPath.objects.annotate(lesson_count=Count('lessons')),
+        'paths': paths,
+        # La insignia del menú usa el mismo número, sin otra consulta.
+        'nav_assessment_count': len(assessments),
     }
 
 
@@ -69,11 +78,15 @@ def reports(request, section):
 
 
 def users(request, section):
-    return 'pages/users.html', {'users': User.objects.all()}
+    # Los grupos se precargan en el mismo orden que usaba groups.first (por pk).
+    groups = Prefetch('groups', queryset=Group.objects.order_by('pk'))
+    return 'pages/users.html', {'users': User.objects.prefetch_related(groups)}
 
 
 def roles(request, section):
-    return 'pages/roles.html', {'roles': Group.objects.prefetch_related('permissions')}
+    return 'pages/roles.html', {
+        'roles': Group.objects.prefetch_related('permissions__content_type')
+    }
 
 
 def audit(request, section):

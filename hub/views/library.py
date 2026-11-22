@@ -1,7 +1,7 @@
 """Biblioteca, módulos, búsqueda, ficha de recurso y descargas."""
 
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, render
 
@@ -29,6 +29,8 @@ def resource_list(request, section):
         resources = resources.filter(kind='Video')
     if section == 'links':
         resources = resources.filter(kind='Enlace')
+    # El número de versiones de cada tarjeta se cuenta en la misma consulta.
+    resources = resources.annotate(version_count=Count('versions'))
     context = {
         'resources': resources,
         'module_section': section in MODULES,
@@ -47,7 +49,7 @@ def resource_list(request, section):
                 Q(title__icontains=query)
                 | Q(body__icontains=query)
                 | Q(path__title__icontains=query)
-            )
+            ).select_related('path')
             if searching
             else Lesson.objects.none(),
             search_paths=LearningPath.objects.filter(

@@ -254,3 +254,48 @@ Criterios de aceptación:
 
 ### Revisión de Carlos
 - 21-11-2026: Carlos revisó la versión de T04 en la demo y la dio por buena («todo ok»).
+
+## T05 — Cursos al modelo de datos
+- Fecha: 2026-11-21
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T05-cursos-al-modelo` en `CICC_original`, creada desde `tarea/T04-dividir-vistas-y-plantillas`. Commits `8fb453b`, `f61b92e` y `9f11fff`. Sin publicar.
+- Estado: En revisión
+
+### Punto de partida
+- La versión de Carlos coincide con el contexto de la ficha: 23 plantillas de curso, tres portadas, `QA_WEEKS`, `QA_ADVANCED_WEEKS` y `hub/certification.py`. `resource()` y el dashboard decidían por el título del recurso. No hay tablas anteriores de cursos (`CourseWeek` o `WeekProgress`), así que no hay ediciones ni avance que trasladar.
+- **Inventario del paso 2:** el HTML de las 23 lecciones y de las tres introducciones usa solo `h2`, `p`, `ul`, `li`, `strong` y `ol`, con `class` en dos `p` y un `h2`. Todo está en la lista de la ficha.
+  - Las portadas tienen además `h1`, `article` y `small`. Se quedan en las plantillas Django que enmarcan la página: es el criterio que dio el arquitecto en la ronda anterior.
+
+### Qué se hizo
+| Commit | Contenido |
+|---|---|
+| `8fb453b` | `hub/content/courses/<slug>/` con `course.json`, `intro.html` y `NN.html` para `fundamentos-qa` (6), `qa-avanzado` (11) y `certificacion-requerimiento` (6). Son copia byte a byte de las plantillas; la introducción es el contenido del `article` de cada portada. Los títulos son los completos de las listas. Se agrega `nh3>=0.3,<0.4` (0.3.8, compatible con Python 3.12). |
+| `f61b92e` | `LearningPath.slug` (único), `intro_html` y `position` (orden `position`, `id`); `Lesson.body_html` y restricción única (`path`, `position`). `save()` sanea con `nh3` y la lista de la ficha; `Lesson` deriva `body` del HTML. Las rutas nuevas sin slug lo reciben con sufijo. Migraciones 0004 (campos), 0005 (slugs sin duplicados, con los slugs acordados para los tres cursos, y renumeración de posiciones repetidas) y 0006 (únicos). `hub/services/courses.py` y comando `load_courses` (idempotente, `--force`), invocado desde `seed_demo`. Administrador: lecciones en línea y slug prellenado. |
+| `9f11fff` | `/rutas/<slug>/` y `/rutas/<slug>/<position>/` en `hub/views/learning.py`, con plantillas `templates/learning/` que reutilizan las clases de las portadas y semanas. Redirecciones 301 desde las seis rutas `/qa/...`; fuera de rango, 404. `complete` acepta `next` validado con `url_has_allowed_host_and_scheme` y por defecto vuelve a la lección. `resource()` siempre muestra el recurso. El dashboard muestra los títulos reales y el bloque «Cursos» con las rutas por `position`. Búsqueda, Rutas y Lecciones enlazan a `/rutas/…`. Se eliminan `QA_WEEKS`, `QA_ADVANCED_WEEKS`, `hub/certification.py`, las vistas antiguas y las nueve plantillas de la ficha. |
+
+### Desviaciones respecto a la tarea
+- **Tres migraciones en lugar de una.** En PostgreSQL no conviene modificar filas y alterar la misma tabla en una transacción. La 0005 solo tiene datos.
+- **Reversibilidad.** Se revierten sin error, pero se pierden `slug`, `position`, `intro_html` y `body_html`. Al volver a aplicarlas, los tres cursos recuperan su slug y `load_courses --force` repone el contenido. Las ediciones hechas a mano en el administrador después de T05 no se recuperan.
+- **Mis lecciones (`/p/lessons/`).** Ahora se ordena por ruta y posición; antes mezclaba lecciones de todas las rutas. Las lecciones de curso muestran un extracto de 40 palabras y «Abrir la lección». Su formulario envía `next` para volver al mismo punto de la lista.
+- **Descripción de las rutas.** Fundamentos usa el subtítulo de su portada. Las otras dos portadas no tenían, así que se usa la primera oración de su introducción, sin cambios.
+- **CourseRoutes** (`test_pages.py`) espera 301 y el destino correcto, como pide el paso 10.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 80 tests` · `OK`.
+- PostgreSQL 16 local (modo producción, base de pruebas temporal): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 80 tests in 42.156s` · `OK`.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → sin hallazgos.
+- `grep -rln "Guía de pruebas batch\|Checklist de pruebas\|Introducción a DB2" hub templates`: solo `seed_demo.py`, `tests/test_core.py` y `tests/test_courses.py`.
+- No quedan las plantillas de cursos: `templates/` contiene `base`, `components`, `exam`, `learning/`, `login`, `notice`, `pages/`, `resource` y `result`.
+- **Copia de `demo.sqlite3` con datos** (directorio temporal):
+  - Antes se agregó un avance y una lección con posición repetida: 3 rutas, 17 lecciones y 1 avance.
+  - Después de `migrate` (0004–0006) y `load_courses`: 6 rutas (`fundamentos-qa` 1, `qa-avanzado` 2, `certificacion-requerimiento` 3) y 40 lecciones. El avance se conserva. Las posiciones repetidas quedaron 1–4 en el mismo orden.
+  - Una segunda carga no creó nada. Revertir a 0003 y volver a migrar terminó sin error.
+- `hub/tests/test_migrations.py` repite la migración con títulos de ruta y posiciones repetidas, y pasa en SQLite y PostgreSQL.
+- **Comparación visual de una lección de cada curso: pendiente de Carlos.** El texto de cada lección coincide con su archivo original (`test_each_lesson_text_matches_its_original_file`).
+
+### Preguntas para el arquitecto
+- Ninguna.
+
+### Observaciones
+- El dashboard ordenaba las rutas con una anotación que ignoraba `Meta.ordering`; ahora el orden es explícito (`position`, `id`).
+- `ARQUITECTURA.md` todavía describe los cursos como plantillas (T11).

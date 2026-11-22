@@ -14,7 +14,7 @@ class CICCTests(TestCase):
     def test_modules_and_brand(self):
         for slug in MODULES:
             response=self.client.get('/p/'+slug+'/')
-            self.assertContains(response,'CICC — Centro Integral de Conocimiento de Calidad')
+            self.assertContains(response,'CICC — Centro Integral de Control de Calidad')
             self.assertContains(response,Resource.objects.filter(kind=slug).first().title)
         self.assertContains(self.client.get('/p/components/'),'CICS → COBOL → DATACOM')
 

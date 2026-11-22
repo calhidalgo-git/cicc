@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block content %}
+<a href="{% url 'certification' %}" class="eyebrow">← VOLVER A CERTIFICACIÓN DE UN REQUERIMIENTO DE SOFTWARE</a>
+<div class="page-heading"><div><h1>{{ topic_title }}</h1><p>{{ certification_title }} · Tema {{ topic_number }} de {{ topics|length }}</p></div></div>
+<article class="panel qa-week-content">{% include topic_template %}</article>
+<div class="section-heading"><h2>Explorar los temas</h2></div>
+{% for topic in topics %}
+{% if forloop.counter != topic_number %}<a class="resource-row" href="{% url 'certification_topic' forloop.counter %}"><span class="file-icon">▤</span><div><h3>{{ topic }}</h3></div><span>→</span></a>{% endif %}
+{% endfor %}
+{% endblock %}

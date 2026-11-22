@@ -1,4 +1,4 @@
-# CICC — Centro Integral de Conocimiento de Calidad
+# CICC — Centro Integral de Control de Calidad
 
 Ampliación del ZIP original, con 32 recursos, 16 lecciones y búsqueda global de recursos publicados, academia, rutas y evaluaciones. Incluye conocimiento del área, ambiente de certificación, mapa conceptual navegable, Mainframe, Distribuido, ciclo de vida y pruebas, QA/ClearQuest, procedimientos, incidentes y glosario. Todos los escenarios y accesos son ficticios.
 

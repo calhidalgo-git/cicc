@@ -12,6 +12,21 @@ from django.views.decorators.http import require_POST
 from openpyxl import Workbook,load_workbook
 from .models import *
 from .catalog import MODULES
+from .certification import TITLE as CERTIFICATION_TITLE, TOPICS as CERTIFICATION_TOPICS
+
+@login_required
+def certification(request):
+    context = ctx(request, 'library', certification_title=CERTIFICATION_TITLE, topics=CERTIFICATION_TOPICS)
+    context['title'] = CERTIFICATION_TITLE
+    return render(request, 'certification.html', context)
+
+@login_required
+def certification_topic(request, topic):
+    if not 1 <= topic <= len(CERTIFICATION_TOPICS):
+        raise Http404
+    context = ctx(request, 'library', certification_title=CERTIFICATION_TITLE, topics=CERTIFICATION_TOPICS, topic_title=CERTIFICATION_TOPICS[topic-1], topic_number=topic, topic_template=f'certification_topics/topic_{topic}.html')
+    context['title'] = CERTIFICATION_TOPICS[topic-1]
+    return render(request, 'certification_topic.html', context)
 QA_WEEKS = [
     'Semana 1 – Introducción al QA',
     'Semana 2 – Pruebas Manuales',
@@ -70,6 +85,8 @@ def page(request,section='dashboard'):
 @login_required
 def resource(request,pk):
     r=get_object_or_404(Resource,pk=pk,published=True)
+    if r.title in ('Introducción a DB2 para QA', 'Certificacion en la Sección', 'Certificación en la Sección', CERTIFICATION_TITLE):
+        return certification(request)
     if r.title in ('Guía de pruebas batch y JCL', 'Fundamentos QA'):
         return render(request,'fundamentals.html',ctx(request,'library',weeks=[title.split(' \u2013 ',1)[-1] for title in QA_WEEKS]))
     if r.title in ('Checklist de pruebas de API REST', 'Checklist de pruebas API REST', 'QA Avanzado y Especialización'):

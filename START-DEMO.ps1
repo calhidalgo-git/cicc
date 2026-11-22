@@ -7,6 +7,7 @@ if (-not (Test-Path -LiteralPath '.venv/Scripts/python.exe')) {
 & .venv/Scripts/python.exe -m pip install -r requirements.txt
 if ($LASTEXITCODE -ne 0) { throw 'No se pudieron instalar las dependencias.' }
 $env:QA_SQLITE='1'
+$env:DEBUG='1'
 & .venv/Scripts/python.exe manage.py migrate
 if ($LASTEXITCODE -ne 0) { throw 'Error al preparar la base demo.' }
 & .venv/Scripts/python.exe manage.py seed_demo

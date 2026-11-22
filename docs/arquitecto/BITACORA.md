@@ -299,3 +299,10 @@ Criterios de aceptación:
 ### Observaciones
 - El dashboard ordenaba las rutas con una anotación que ignoraba `Meta.ordering`; ahora el orden es explícito (`position`, `id`).
 - `ARQUITECTURA.md` todavía describe los cursos como plantillas (T11).
+
+### Decisión de Carlos sobre D4
+- 21-11-2026: Carlos vetó la consecuencia visible de D4. Los recursos «Guía de pruebas batch y JCL», «Checklist de pruebas de API REST» e «Introducción a DB2 para QA» deben verse como en su versión: con el nombre del curso y abriendo su teoría.
+- Para cumplirlo sin depender del título (D6) se agregó `Resource.learning_path` (migración 0007, reversible), que se edita en el administrador. `seed_demo` lo asigna a esos tres recursos. La ficha `/resource/<pk>/` dibuja la portada de la ruta en la misma dirección (200, como antes) y el dashboard usa `display_title`. Commit `63b4f87`.
+- La prueba original `test_all_admin_screens` pasa sin cambios. En `test_courses.py`, `test_course_resources_show_their_own_page` se reemplazó por `test_course_resources_open_their_course` y `test_renaming_a_resource_does_not_change_where_it_opens`.
+- Verificación: SQLite y PostgreSQL `Ran 81 tests` · `OK`. `ruff check` y `ruff format --check` sin hallazgos. `makemigrations --check` → `No changes detected`.
+- Pregunta para el arquitecto: registrar este veto de Carlos en D4.

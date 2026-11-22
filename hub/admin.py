@@ -12,10 +12,24 @@ from .models import (
     ResourceVersion,
 )
 
+
+class LessonInline(admin.StackedInline):
+    model = Lesson
+    extra = 0
+    fields = ('position', 'title', 'body_html', 'body')
+    ordering = ('position',)
+
+
+@admin.register(LearningPath)
+class LearningPathAdmin(admin.ModelAdmin):
+    list_display = ('title', 'slug', 'area', 'position')
+    prepopulated_fields = {'slug': ('title',)}
+    inlines = [LessonInline]
+
+
 for model in [
     Resource,
     ResourceVersion,
-    LearningPath,
     Lesson,
     Assessment,
     Question,

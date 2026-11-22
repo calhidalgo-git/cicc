@@ -2,6 +2,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.utils.text import slugify
 
 
 class Resource(models.Model):
@@ -42,20 +43,70 @@ class ResourceVersion(models.Model):
         ]
 
 
+def unique_slug(model, title, exclude_pk=None):
+    """``slugify(title)`` con un sufijo -2, -3… si ya existe."""
+    base = slugify(title)[:190] or 'ruta'
+    candidate, number = base, 2
+    others = model.objects.exclude(pk=exclude_pk) if exclude_pk else model.objects.all()
+    while others.filter(slug=candidate).exists():
+        candidate = f'{base}-{number}'
+        number += 1
+    return candidate
+
+
 class LearningPath(models.Model):
     title = models.CharField(max_length=200)
+    slug = models.SlugField(max_length=200, unique=True)
     area = models.CharField(max_length=20)
     description = models.TextField()
+    intro_html = models.TextField(
+        blank=True,
+        help_text='Introducción en HTML. Se limita a las etiquetas permitidas al guardar.',
+    )
+    position = models.IntegerField(default=0)
+
+    class Meta:
+        ordering = ['position', 'id']
+
+    def save(self, *args, **kwargs):
+        from .services.courses import sanitize_html
+
+        if not self.slug:
+            self.slug = unique_slug(LearningPath, self.title, exclude_pk=self.pk)
+        self.intro_html = sanitize_html(self.intro_html)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title
 
 
 class Lesson(models.Model):
     path = models.ForeignKey(LearningPath, on_delete=models.CASCADE, related_name='lessons')
     title = models.CharField(max_length=200)
-    body = models.TextField()
+    body = models.TextField(
+        blank=True, help_text='Texto plano. Si hay contenido HTML, se calcula a partir de él.'
+    )
+    body_html = models.TextField(
+        blank=True, help_text='Contenido en HTML. Se limita a las etiquetas permitidas al guardar.'
+    )
     position = models.PositiveIntegerField()
 
     class Meta:
         ordering = ['position']
+        constraints = [
+            models.UniqueConstraint(fields=['path', 'position'], name='unique_lesson_position')
+        ]
+
+    def save(self, *args, **kwargs):
+        from .services.courses import html_to_text, sanitize_html
+
+        self.body_html = sanitize_html(self.body_html)
+        if self.body_html:
+            self.body = html_to_text(self.body_html)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title
 
 
 class Progress(models.Model):

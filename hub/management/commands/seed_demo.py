@@ -209,6 +209,10 @@ class Command(BaseCommand):
             Lesson.objects.update_or_create(
                 path=path, position=position, defaults={'title': title, 'body': body}
             )
+        # Los tres cursos como rutas de aprendizaje (lo mismo que el comando load_courses).
+        from hub.services.courses import load_courses
+
+        load_courses()
         self.stdout.write(
             self.style.SUCCESS('Datos demo disponibles: admin, ana, diego, lucia / DemoQA!2026')
         )

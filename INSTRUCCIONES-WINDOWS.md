@@ -12,7 +12,7 @@
 ```powershell
 python -m venv .venv
 & .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-$env:QA_SQLITE='1'
+$env:CICC_DEMO='1'
 & .\.venv\Scripts\python.exe manage.py migrate
 & .\.venv\Scripts\python.exe manage.py seed_demo
 & .\.venv\Scripts\python.exe manage.py runserver 127.0.0.1:8000 --noreload
@@ -21,7 +21,7 @@ $env:QA_SQLITE='1'
 ## Pruebas
 
 ```powershell
-$env:QA_SQLITE='1'
+$env:CICC_DEMO='1'
 & .\.venv\Scripts\python.exe manage.py check
 & .\.venv\Scripts\python.exe manage.py test hub -v 2
 ```

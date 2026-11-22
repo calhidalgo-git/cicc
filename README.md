@@ -9,26 +9,49 @@ Ampliación del ZIP original, con 32 recursos, 16 lecciones y búsqueda global d
 
 Prototipo Django navegable en español para personal QA Mainframe y Distribuido. Todas las herramientas son gratuitas y de código abierto. No requiere servicios de pago ni conexión para su interfaz: Bootstrap y Chart.js se incluyen localmente.
 
-## Inicio rápido (Windows PowerShell)
+## Demo local (Windows PowerShell)
 
-Instala Python 3.12 y PostgreSQL. Desde esta carpeta:
+Instala Python 3.12. La forma más simple es `START-DEMO.ps1`. A mano, desde esta carpeta:
 
 ```powershell
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
-# Crear primero una base PostgreSQL y un usuario con acceso:
-$env:PGDATABASE='qahub'
-$env:PGUSER='qahub'
-$env:PGPASSWORD='tu-clave-local'
-$env:PGHOST='localhost'
-$env:DJANGO_SECRET_KEY='reemplazar-con-un-secreto-aleatorio'
+$env:CICC_DEMO='1'
 python manage.py migrate
 python manage.py seed_demo
 python manage.py runserver 127.0.0.1:8000
 ```
 
-Abre http://127.0.0.1:8000. Para una demostración sin instalar PostgreSQL, establece `$env:QA_SQLITE='1'` antes de migrar. Esta alternativa usa SQLite exclusivamente para demostración y pruebas; la configuración por defecto es PostgreSQL.
+`CICC_DEMO=1` activa el modo de demostración: SQLite en `demo.sqlite3`, `DEBUG` activo y una clave de desarrollo. Abre http://127.0.0.1:8000.
+
+## Instalación con PostgreSQL
+
+Sin `CICC_DEMO` la aplicación arranca en modo producción: `DEBUG` queda desactivado y se exigen `DJANGO_SECRET_KEY`, `CICC_ALLOWED_HOSTS` y las variables `PG*`. Crea primero una base y un usuario con acceso. Las variables pueden ir en el entorno o en un archivo `.env` en la raíz (copia `.env.example` y completa los valores).
+
+```powershell
+$env:PGDATABASE='cicc'
+$env:PGUSER='cicc_app'
+$env:PGPASSWORD='tu-clave'
+$env:PGHOST='localhost'
+$env:DJANGO_SECRET_KEY=python -c "import secrets; print(secrets.token_urlsafe(64))"
+$env:CICC_ALLOWED_HOSTS='cicc.ejemplo.local'
+python manage.py migrate
+python manage.py createsuperuser
+```
+
+No ejecutes `seed_demo` contra esta base: crea cuentas de demostración con una contraseña conocida.
+
+| Variable | Uso |
+|---|---|
+| `CICC_DEMO` | `1` activa el modo de demostración local. Sin definir: modo producción. |
+| `DEBUG` | Solo `1` lo activa. En modo demo vale `1` salvo `DEBUG=0`. |
+| `DJANGO_SECRET_KEY` | Obligatoria en producción; se rechazan las claves de ejemplo publicadas. |
+| `CICC_ALLOWED_HOSTS` | Obligatoria en producción: hosts separados por comas. |
+| `CICC_CSRF_TRUSTED_ORIGINS` | Orígenes de confianza para CSRF (si hay proxy), separados por comas. |
+| `CICC_HTTPS` | `1` si se sirve por HTTPS: cookies seguras, redirección y HSTS. |
+| `PGDATABASE`, `PGUSER`, `PGPASSWORD`, `PGHOST`, `PGPORT` | Conexión PostgreSQL; `PGPORT` es opcional (5432). |
+| `QA_SQLITE` | Alias histórico: `1` usa SQLite sin relajar las demás reglas. |
 
 Credenciales ficticias: `admin`, `ana`, `diego`, `lucia`, todos con contraseña `DemoQA!2026`. admin administra; ana participa; diego edita contenido; lucia gestiona evaluaciones y consulta reportes. El comando seed es idempotente y conserva contraseñas existentes. Nunca ejecutes seed en producción.
 
@@ -44,12 +67,12 @@ Credenciales ficticias: `admin`, `ana`, `diego`, `lucia`, todos con contraseña 
 ## Pruebas
 
 ```powershell
-$env:QA_SQLITE='1'
+$env:CICC_DEMO='1'
 python manage.py check
 python manage.py test hub -v 2
 ```
 
-Las pruebas cubren acceso por rol, pantallas, recuperación de intentos, cálculo de notas, aislamiento entre usuarios, expiración, respuestas inválidas, progreso idempotente, descargas protegidas, búsqueda, Excel y rollback de importación. Para verificar PostgreSQL, elimina QA_SQLITE, configura una base de pruebas y ejecuta el mismo comando con un usuario autorizado a crear bases. El servidor de desarrollo es para revisión local.
+Las pruebas cubren acceso por rol, pantallas, recuperación de intentos, cálculo de notas, aislamiento entre usuarios, expiración, respuestas inválidas, progreso idempotente, descargas protegidas, búsqueda, Excel y rollback de importación. Para verificar PostgreSQL, quita CICC_DEMO, define las variables de producción, configura una base de pruebas y ejecuta el mismo comando con un usuario autorizado a crear bases. El servidor de desarrollo es para revisión local.
 
 ## Límites del prototipo
 

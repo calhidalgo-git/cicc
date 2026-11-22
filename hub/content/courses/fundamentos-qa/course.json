@@ -1,0 +1,39 @@
+{
+  "slug": "fundamentos-qa",
+  "title": "Fundamentos QA",
+  "description": "Una ruta progresiva para iniciarte en el aseguramiento de la calidad.",
+  "position": 1,
+  "area": "Transversal",
+  "lessons": [
+    {
+      "position": 1,
+      "title": "Semana 1 – Introducción al QA",
+      "file": "01.html"
+    },
+    {
+      "position": 2,
+      "title": "Semana 2 – Pruebas Manuales",
+      "file": "02.html"
+    },
+    {
+      "position": 3,
+      "title": "Semana 3 – Herramientas de QA",
+      "file": "03.html"
+    },
+    {
+      "position": 4,
+      "title": "Semana 4 – Automatización inicial",
+      "file": "04.html"
+    },
+    {
+      "position": 5,
+      "title": "Semana 5 – QA en metodologías ágiles y tradicionales",
+      "file": "05.html"
+    },
+    {
+      "position": 6,
+      "title": "Semana 6 – Tendencias y futuro del QA",
+      "file": "06.html"
+    }
+  ]
+}

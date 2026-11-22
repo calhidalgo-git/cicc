@@ -1,0 +1,64 @@
+{
+  "slug": "qa-avanzado",
+  "title": "QA Avanzado y Especialización",
+  "description": "El aseguramiento de la calidad de software (QA) ha evolucionado más allá de las pruebas funcionales básicas, convirtiéndose en un componente estratégico dentro del ciclo de vida del desarrollo.",
+  "position": 2,
+  "area": "Transversal",
+  "lessons": [
+    {
+      "position": 1,
+      "title": "Semana 1 – Estrategias de pruebas avanzadas",
+      "file": "01.html"
+    },
+    {
+      "position": 2,
+      "title": "Semana 2 – Automatización intermedia",
+      "file": "02.html"
+    },
+    {
+      "position": 3,
+      "title": "Semana 3 – QA en CI/CD y DevOps",
+      "file": "03.html"
+    },
+    {
+      "position": 4,
+      "title": "Semana 4 – Testing basado en datos e IA",
+      "file": "04.html"
+    },
+    {
+      "position": 5,
+      "title": "Semana 5 – QA en metodologías híbridas",
+      "file": "05.html"
+    },
+    {
+      "position": 6,
+      "title": "Semana 6 – QA en pruebas de seguridad",
+      "file": "06.html"
+    },
+    {
+      "position": 7,
+      "title": "Semana 7 – QA en pruebas de rendimiento",
+      "file": "07.html"
+    },
+    {
+      "position": 8,
+      "title": "Semana 8 – QA en pruebas móviles",
+      "file": "08.html"
+    },
+    {
+      "position": 9,
+      "title": "Semana 9 – QA en pruebas de APIs y microservicios",
+      "file": "09.html"
+    },
+    {
+      "position": 10,
+      "title": "Semana 10 – QA en pruebas de accesibilidad y usabilidad",
+      "file": "10.html"
+    },
+    {
+      "position": 11,
+      "title": "Semana 11 – Soft skills y rol estratégico del QA",
+      "file": "11.html"
+    }
+  ]
+}

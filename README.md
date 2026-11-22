@@ -39,6 +39,7 @@ $env:PGHOST='localhost'
 $env:DJANGO_SECRET_KEY=python -c "import secrets; print(secrets.token_urlsafe(64))"
 $env:CICC_ALLOWED_HOSTS='cicc.ejemplo.local'
 python manage.py migrate
+python manage.py load_courses
 python manage.py createsuperuser
 ```
 

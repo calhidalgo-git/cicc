@@ -6,10 +6,8 @@ from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, render
 
 from ..catalog import MODULES
-from ..certification import TITLE as CERTIFICATION_TITLE
 from ..models import Assessment, LearningPath, Lesson, Resource, ResourceVersion
 from .common import ctx, log
-from .learning import advanced_page, certification, fundamentals_page
 
 
 def resource_list(request, section):
@@ -69,22 +67,6 @@ def resource_list(request, section):
 @login_required
 def resource(request, pk):
     r = get_object_or_404(Resource, pk=pk, published=True)
-    # Las comparaciones de títulos se quitan en T05 (cursos al modelo de datos).
-    if r.title in (
-        'Introducción a DB2 para QA',
-        'Certificacion en la Sección',
-        'Certificación en la Sección',
-        CERTIFICATION_TITLE,
-    ):
-        return certification(request)
-    if r.title in ('Guía de pruebas batch y JCL', 'Fundamentos QA'):
-        return fundamentals_page(request)
-    if r.title in (
-        'Checklist de pruebas de API REST',
-        'Checklist de pruebas API REST',
-        'QA Avanzado y Especialización',
-    ):
-        return advanced_page(request)
     return render(request, 'resource.html', ctx(request, 'library', resource=r))
 
 

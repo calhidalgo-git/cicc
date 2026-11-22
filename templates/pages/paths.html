@@ -5,10 +5,10 @@
   <article class="panel">
     <span class="course-icon blue">⌘</span>
     <span class="pill">{{ p.area }}</span>
-    <h2>{{ p.title }}</h2>
+    <h2><a href="{% url 'path_detail' p.slug %}">{{ p.title }}</a></h2>
     <p>{{ p.description }}</p>
-    <ol>{% for l in p.lessons.all %}<li>{{ l.title }}</li>{% endfor %}</ol>
-    <a href="/p/lessons/" class="btn-primary">Abrir ruta →</a>
+    <ol>{% for l in p.lessons.all %}<li><a href="{% url 'lesson_detail' p.slug l.position %}">{{ l.title }}</a></li>{% endfor %}</ol>
+    <a href="{% url 'path_detail' p.slug %}" class="btn-primary">Abrir ruta →</a>
   </article>
   {% endfor %}
 </div>

@@ -6,6 +6,9 @@ from django.urls import path
 from . import views as v
 
 urlpatterns = [
+    path('rutas/<slug:slug>/', v.path_detail, name='path_detail'),
+    path('rutas/<slug:slug>/<int:position>/', v.lesson_detail, name='lesson_detail'),
+    # Cursos anteriores a T05: redirección permanente a su ruta de aprendizaje.
     path('qa/certificacion/', v.certification, name='certification'),
     path('qa/certificacion/tema/<int:topic>/', v.certification_topic, name='certification_topic'),
     path('qa/avanzado/', v.qa_advanced, name='qa_advanced'),

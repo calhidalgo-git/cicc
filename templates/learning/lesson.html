@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% comment %}Lección de una ruta: mismo diseño que tenían las semanas y temas de los cursos.{% endcomment %}
+{% block content %}
+<a href="{% url 'path_detail' path.slug %}" class="eyebrow">← VOLVER A {{ path.title|upper }}</a>
+<div class="page-heading">
+  <div>
+    <h1>{{ lesson.title }}</h1>
+    <p>{{ path.title }} · Lección {{ number }} de {{ total }}</p>
+  </div>
+</div>
+<article class="panel qa-week-content">
+  {% if lesson.body_html %}{{ lesson.body_html|safe }}{% else %}<p class="lesson-body">{{ lesson.body|linebreaksbr }}</p>{% endif %}
+</article>
+<div class="section-heading">
+  {% if lesson_done %}
+  <span class="pill green">✓ Lección completada</span>
+  {% else %}
+  <form method="post" action="{% url 'complete' lesson.pk %}">{% csrf_token %}<button class="btn-primary">Marcar como completada ✓</button></form>
+  {% endif %}
+  <span>
+    {% if prev_lesson %}<a href="{% url 'lesson_detail' path.slug prev_lesson.position %}" rel="prev">← Anterior</a>{% endif %}
+    {% if next_lesson %}<a href="{% url 'lesson_detail' path.slug next_lesson.position %}" rel="next">Siguiente →</a>{% endif %}
+  </span>
+</div>
+<div class="section-heading"><h2>Explorar los temas</h2></div>
+{% for item in lessons %}
+{% if item.pk != lesson.pk %}<a class="resource-row" href="{% url 'lesson_detail' path.slug item.position %}"><span class="file-icon">▤</span><div><h3>{{ item.title }}</h3></div>{% if item.pk in done %}<span class="pill green">✓ Completada</span>{% endif %}<span>→</span></a>{% endif %}
+{% endfor %}
+{% endblock %}

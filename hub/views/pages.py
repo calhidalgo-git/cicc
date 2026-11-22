@@ -32,7 +32,9 @@ def dashboard(request, section):
         total=Count('pk'),
         areas=Count('area', distinct=True, filter=Q(published=True) & ~Q(area='Transversal')),
     )
-    paths = list(LearningPath.objects.annotate(lesson_count=Count('lessons')))
+    paths = list(
+        LearningPath.objects.annotate(lesson_count=Count('lessons')).order_by('position', 'id')
+    )
     assessments = list(
         Assessment.objects.annotate(question_count=Count('questions')).order_by('pk')
     )

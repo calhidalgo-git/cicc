@@ -35,16 +35,15 @@
       <span class="course-icon {% if r.area == 'Mainframe' %}blue{% else %}green{% endif %}">{% if r.area == 'Mainframe' %}▦{% else %}⌘{% endif %}</span>
       <div>
         <span class="tiny-label">{{ r.area|upper }} · {{ r.display_kind|upper }}</span>
-        {# Las comparaciones de títulos se quitan en T05 (cursos al modelo de datos). #}
-        <h3>{% if r.title == 'Guía de pruebas batch y JCL' %}Fundamentos QA{% elif r.title == 'Checklist de pruebas de API REST' or r.title == 'Checklist de pruebas API REST' %}QA Avanzado y Especialización{% elif r.title == 'Introducción a DB2 para QA' %}Certificación de un Requerimiento de Software{% else %}{{ r.title }}{% endif %}</h3>
+        <h3>{{ r.title }}</h3>
         <small>Disponible en la biblioteca</small>
       </div>
       <span>→</span>
     </a>
     {% endfor %}
-    <div class="section-heading spaced"><h2>Continúa tu aprendizaje</h2><a href="/p/paths/">Ver todas las rutas ↗</a></div>
+    <div class="section-heading spaced"><h2>Cursos</h2><a href="/p/paths/">Ver todas las rutas ↗</a></div>
     {% for path in paths %}
-    <a href="/p/lessons/" class="resource-row">
+    <a href="{% url 'path_detail' path.slug %}" class="resource-row">
       <span class="file-icon">▤</span>
       <div><h3>{{ path.title }}</h3><small>{{ path.area }} <span>•</span> {{ path.lesson_count }} lecciones · Nivel fundamental</small></div>
       <span class="pill green">Disponible</span>

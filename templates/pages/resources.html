@@ -34,8 +34,8 @@
 {% if show_search_results %}
 <section class="panel">
   <h2>Rutas y academia</h2>
-  {% for p in search_paths %}<p><a href="/p/paths/">{{ p.title }}</a></p>{% endfor %}
-  {% for l in search_lessons %}<p><a href="/p/lessons/#lesson-{{ l.pk }}">{{ l.title }}</a> · {{ l.path.title }}</p>{% empty %}<p>Sin lecciones coincidentes. Escribe un término para buscar.</p>{% endfor %}
+  {% for p in search_paths %}<p><a href="{% url 'path_detail' p.slug %}">{{ p.title }}</a></p>{% endfor %}
+  {% for l in search_lessons %}<p><a href="{% url 'lesson_detail' l.path.slug l.position %}">{{ l.title }}</a> · {{ l.path.title }}</p>{% empty %}<p>Sin lecciones coincidentes. Escribe un término para buscar.</p>{% endfor %}
   <h2>Evaluaciones</h2>
   {% for a in search_assessments %}<p><a href="/p/assessments/">{{ a.title }}</a></p>{% empty %}<p>Sin evaluaciones coincidentes.</p>{% endfor %}
 </section>

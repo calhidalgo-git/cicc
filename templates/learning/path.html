@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% comment %}Portada de una ruta: mismo diseño que tenían las portadas de los cursos.{% endcomment %}
+{% block content %}
+<a href="/p/paths/" class="eyebrow">← VOLVER A RUTAS DE APRENDIZAJE</a>
+<div class="page-heading">
+  <div>
+    <h1>{{ path.title }}</h1>
+    <p>{{ path.description }}</p>
+  </div>
+</div>
+{% if path.intro_html %}
+<article class="panel">
+  {{ path.intro_html|safe }}
+</article>
+{% endif %}
+<div class="section-heading"><h2>Ruta de aprendizaje</h2><span>{{ done_count }} de {{ lessons|length }} lecciones completadas · {{ pct }}%</span></div>
+<div class="progress-track" role="progressbar" aria-label="Progreso de {{ path.title }}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ pct }}"><i style="width:{{ pct }}%"></i></div>
+{% for lesson in lessons %}
+<a class="learning-row" href="{% url 'lesson_detail' path.slug lesson.position %}">
+  <span class="course-icon blue">▤</span>
+  <div>
+    <span class="tiny-label">{{ path.title|upper }}</span>
+    <h3>{{ lesson.title }}</h3>
+    <small>{% if lesson.pk in done %}Lección completada{% else %}Abrir tema{% endif %}</small>
+  </div>
+  {% if lesson.pk in done %}<span class="pill green">✓ Completada</span>{% endif %}
+  <span>→</span>
+</a>
+{% empty %}
+<p>Esta ruta todavía no tiene lecciones.</p>
+{% endfor %}
+{% endblock %}

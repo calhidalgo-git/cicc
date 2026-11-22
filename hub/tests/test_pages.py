@@ -12,11 +12,11 @@ from ..views import NAV
 
 PASSWORD = 'DemoQA!2026'
 
-# Portada, número de lecciones y prefijo de cada curso con plantillas propias.
+# Portada antigua, segmento, número de lecciones y slug de la ruta que la sustituye (T05).
 COURSES = [
-    ('/qa/fundamentos/', 'semana', 6),
-    ('/qa/avanzado/', 'semana', 11),
-    ('/qa/certificacion/', 'tema', 6),
+    ('/qa/fundamentos/', 'semana', 6, 'fundamentos-qa'),
+    ('/qa/avanzado/', 'semana', 11, 'qa-avanzado'),
+    ('/qa/certificacion/', 'tema', 6, 'certificacion-requerimiento'),
 ]
 
 # Texto que hoy solo aparece en cada sección. Videoteca, enlaces y módulos se comprueban aparte.
@@ -50,10 +50,11 @@ ALLOWED_BY_ROLE = {
 
 
 def course_urls():
+    """Cada URL antigua con su destino nuevo, más los números fuera de rango."""
     urls, missing = [], []
-    for base, segment, total in COURSES:
-        urls.append(base)
-        urls += [f'{base}{segment}/{n}/' for n in range(1, total + 1)]
+    for base, segment, total, slug in COURSES:
+        urls.append((base, f'/rutas/{slug}/'))
+        urls += [(f'{base}{segment}/{n}/', f'/rutas/{slug}/{n}/') for n in range(1, total + 1)]
         missing += [f'{base}{segment}/{total + 1}/', f'{base}{segment}/0/']
     return urls, missing
 
@@ -68,19 +69,23 @@ class PagesBase(TestCase):
 
 
 class CourseRoutes(PagesBase):
+    # T05 (D7): las rutas /qa/ responden 301 hacia /rutas/<slug>/, que responde 200.
     def test_every_course_page_answers_200_when_logged_in(self):
         self.login()
         urls, _ = course_urls()
         self.assertEqual(len(urls), 3 + 6 + 11 + 6)
-        for url in urls:
-            self.assertEqual(self.client.get(url).status_code, 200, url)
+        for url, target in urls:
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 301, url)
+            self.assertEqual(response['Location'], target, url)
+            self.assertEqual(self.client.get(target).status_code, 200, target)
 
     def test_course_pages_redirect_to_login_without_session(self):
         urls, _ = course_urls()
-        for url in urls:
-            response = self.client.get(url)
-            self.assertEqual(response.status_code, 302, url)
-            self.assertIn('/login/', response['Location'], url)
+        for _, target in urls:
+            response = self.client.get(target)
+            self.assertEqual(response.status_code, 302, target)
+            self.assertIn('/login/', response['Location'], target)
 
     def test_number_out_of_range_is_404(self):
         self.login()

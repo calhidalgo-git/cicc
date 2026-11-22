@@ -5,7 +5,7 @@ from django.core.management import call_command
 from django.test import TestCase
 from openpyxl import load_workbook
 
-from .models import Assessment, Question
+from ..models import Assessment, Question
 
 
 class ExcelTemplate(TestCase):

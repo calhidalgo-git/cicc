@@ -1,8 +1,8 @@
 from django.core.management import call_command
 from django.test import TestCase
 
-from .catalog import CONTENT, MODULES
-from .models import Lesson, Resource
+from ..catalog import CONTENT, MODULES
+from ..models import Lesson, Resource
 
 
 class CICCTests(TestCase):

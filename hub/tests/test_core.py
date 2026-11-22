@@ -5,7 +5,7 @@ from django.core.management import call_command
 from django.test import TestCase
 from django.utils import timezone
 
-from .models import Assessment, Attempt, Lesson, Progress, Question, Resource, ResourceVersion
+from ..models import Assessment, Attempt, Lesson, Progress, Question, Resource, ResourceVersion
 
 
 class HubTests(TestCase):
@@ -30,7 +30,7 @@ class HubTests(TestCase):
 
     def test_all_admin_screens(self):
         self.login('admin')
-        from .views import NAV
+        from ..views import NAV
 
         for slug, _, _ in NAV:
             self.assertEqual(self.client.get('/p/' + slug + '/').status_code, 200, slug)

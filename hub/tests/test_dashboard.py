@@ -5,7 +5,7 @@ from django.core.management import call_command
 from django.test import TestCase
 from django.utils import timezone
 
-from .models import Assessment, Attempt, Lesson, Question, Resource
+from ..models import Assessment, Attempt, Lesson, Question, Resource
 
 PASSWORD = 'DemoQA!2026'
 

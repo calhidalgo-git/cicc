@@ -6,9 +6,9 @@ Se escribió antes de dividir vistas y plantillas, y pasaba con el código anter
 from django.core.management import call_command
 from django.test import TestCase
 
-from .catalog import MODULES
-from .models import Resource
-from .views import NAV
+from ..catalog import MODULES
+from ..models import Resource
+from ..views import NAV
 
 PASSWORD = 'DemoQA!2026'
 

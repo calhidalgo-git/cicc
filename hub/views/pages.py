@@ -1,24 +1,85 @@
-"""Secciones /p/<sección>/: dashboard, biblioteca, aprendizaje, evaluaciones y gestión."""
+"""Secciones /p/<sección>/: un despachador y una función por sección.
+
+Cada función devuelve (plantilla, contexto) y consulta solo lo que usa su plantilla.
+"""
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User
-from django.db.models import Q
 from django.http import Http404, HttpResponse
 from django.shortcuts import render
 
 from ..catalog import MODULES
-from ..models import (
-    Assessment,
-    Attempt,
-    Audit,
-    LearningPath,
-    Lesson,
-    Progress,
-    Question,
-    Resource,
-)
+from ..models import Assessment, Audit, LearningPath, Progress, Question, Resource
 from ..permissions import TITLES, allowed
+from . import exams, learning, library
 from .common import ctx
+
+PAGE = 'page.html'
+
+
+def dashboard(request, section):
+    return PAGE, {
+        'resources': Resource.objects.filter(published=True),
+        'resource_count': Resource.objects.count(),
+        'progress_count': Progress.objects.filter(user=request.user).count(),
+        'assessment_count': Assessment.objects.count(),
+        'paths': LearningPath.objects.all(),
+    }
+
+
+def questions(request, section):
+    return PAGE, {'questions': Question.objects.select_related('assessment')}
+
+
+def reports(request, section):
+    return PAGE, {
+        'resource_count': Resource.objects.count(),
+        'assessment_count': Assessment.objects.count(),
+        'users': User.objects.all(),
+        'chart_data': [
+            Resource.objects.filter(area='Mainframe', published=True).count(),
+            Resource.objects.filter(area='Distribuido', published=True).count(),
+        ],
+    }
+
+
+def users(request, section):
+    return PAGE, {'users': User.objects.all()}
+
+
+def roles(request, section):
+    return PAGE, {'roles': Group.objects.prefetch_related('permissions')}
+
+
+def audit(request, section):
+    return PAGE, {'audits': Audit.objects.select_related('user').order_by('-created')[:100]}
+
+
+def static_section(request, section):
+    """Secciones sin datos propios: mapa de componentes, configuración y respaldos."""
+    return PAGE, {}
+
+
+SECTIONS = {
+    'dashboard': dashboard,
+    'library': library.resource_list,
+    'videos': library.resource_list,
+    'links': library.resource_list,
+    **dict.fromkeys(MODULES, library.resource_list),
+    'search': library.resource_list,
+    'components': static_section,
+    'paths': learning.paths,
+    'lessons': learning.lessons,
+    'assessments': exams.assessments,
+    'results': exams.attempt_history,
+    'questions': questions,
+    'reports': reports,
+    'users': users,
+    'roles': roles,
+    'settings': static_section,
+    'audit': audit,
+    'backups': static_section,
+}
 
 
 @login_required
@@ -27,67 +88,7 @@ def page(request, section='dashboard'):
         raise Http404
     if not allowed(request.user, section):
         return HttpResponse('Acceso restringido por tu rol', status=403)
-    resources = Resource.objects.filter(published=True)
-    query = request.GET.get('q', '')
-    area = request.GET.get('area', '')
-    if query:
-        resources = resources.filter(
-            Q(title__icontains=query) | Q(description__icontains=query) | Q(area__icontains=query)
-        )
-    if area:
-        resources = resources.filter(area=area)
-    if section in MODULES:
-        resources = resources.filter(kind=section)
-    if section == 'videos':
-        resources = resources.filter(kind='Video')
-    if section == 'links':
-        resources = resources.filter(kind='Enlace')
-    return render(
-        request,
-        'page.html',
-        ctx(
-            request,
-            section,
-            resources=resources,
-            module_section=section in MODULES,
-            search_lessons=Lesson.objects.filter(
-                Q(title__icontains=query)
-                | Q(body__icontains=query)
-                | Q(path__title__icontains=query)
-            )
-            if query and section == 'search'
-            else Lesson.objects.none(),
-            search_paths=LearningPath.objects.filter(
-                Q(title__icontains=query) | Q(description__icontains=query)
-            )
-            if query and section == 'search'
-            else LearningPath.objects.none(),
-            search_assessments=Assessment.objects.filter(
-                Q(title__icontains=query) | Q(area__icontains=query)
-            )
-            if query and section == 'search'
-            else Assessment.objects.none(),
-            chart_data=[
-                Resource.objects.filter(area='Mainframe', published=True).count(),
-                Resource.objects.filter(area='Distribuido', published=True).count(),
-            ],
-            query=query,
-            area=area,
-            paths=LearningPath.objects.all(),
-            lessons=Lesson.objects.select_related('path'),
-            done=list(
-                Progress.objects.filter(user=request.user).values_list('lesson_id', flat=True)
-            ),
-            assessments=Assessment.objects.all(),
-            attempts=Attempt.objects.filter(user=request.user, finished=True).select_related(
-                'assessment'
-            ),
-            questions=Question.objects.select_related('assessment'),
-            users=User.objects.all(),
-            roles=Group.objects.prefetch_related('permissions'),
-            audits=Audit.objects.select_related('user').order_by('-created')[:100],
-            resource_count=Resource.objects.count(),
-            progress_count=Progress.objects.filter(user=request.user).count(),
-            assessment_count=Assessment.objects.count(),
-        ),
-    )
+    template, extra = SECTIONS[section](request, section)
+    # base.html muestra en el buscador global la consulta de la URL, en cualquier sección.
+    extra.setdefault('query', request.GET.get('q', ''))
+    return render(request, template, ctx(request, section, **extra))

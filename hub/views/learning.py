@@ -7,7 +7,7 @@ from django.views.decorators.http import require_POST
 
 from ..certification import TITLE as CERTIFICATION_TITLE
 from ..certification import TOPICS as CERTIFICATION_TOPICS
-from ..models import Lesson, Progress
+from ..models import LearningPath, Lesson, Progress
 from .common import ctx
 
 QA_WEEKS = [
@@ -123,6 +123,19 @@ def qa_advanced_week(request, week):
             week_template=f'qa_advanced_weeks/week_{week}.html',
         ),
     )
+
+
+def paths(request, section):
+    return 'page.html', {'paths': LearningPath.objects.all()}
+
+
+def lessons(request, section):
+    return 'page.html', {
+        'lessons': Lesson.objects.select_related('path'),
+        'done': list(
+            Progress.objects.filter(user=request.user).values_list('lesson_id', flat=True)
+        ),
+    }
 
 
 @login_required

@@ -1,13 +1,62 @@
 """Biblioteca, módulos, búsqueda, ficha de recurso y descargas."""
 
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, render
 
+from ..catalog import MODULES
 from ..certification import TITLE as CERTIFICATION_TITLE
-from ..models import Resource, ResourceVersion
+from ..models import Assessment, LearningPath, Lesson, Resource, ResourceVersion
 from .common import ctx, log
 from .learning import advanced_page, certification, fundamentals_page
+
+
+def resource_list(request, section):
+    """Biblioteca, videoteca, enlaces, módulos temáticos y búsqueda global."""
+    resources = Resource.objects.filter(published=True)
+    query = request.GET.get('q', '')
+    area = request.GET.get('area', '')
+    if query:
+        resources = resources.filter(
+            Q(title__icontains=query) | Q(description__icontains=query) | Q(area__icontains=query)
+        )
+    if area:
+        resources = resources.filter(area=area)
+    if section in MODULES:
+        resources = resources.filter(kind=section)
+    if section == 'videos':
+        resources = resources.filter(kind='Video')
+    if section == 'links':
+        resources = resources.filter(kind='Enlace')
+    context = {
+        'resources': resources,
+        'module_section': section in MODULES,
+        'query': query,
+        'area': area,
+    }
+    if section == 'search':
+        searching = bool(query)
+        context.update(
+            search_lessons=Lesson.objects.filter(
+                Q(title__icontains=query)
+                | Q(body__icontains=query)
+                | Q(path__title__icontains=query)
+            )
+            if searching
+            else Lesson.objects.none(),
+            search_paths=LearningPath.objects.filter(
+                Q(title__icontains=query) | Q(description__icontains=query)
+            )
+            if searching
+            else LearningPath.objects.none(),
+            search_assessments=Assessment.objects.filter(
+                Q(title__icontains=query) | Q(area__icontains=query)
+            )
+            if searching
+            else Assessment.objects.none(),
+        )
+    return 'page.html', context
 
 
 @login_required

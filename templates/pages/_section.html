@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% comment %}
+  Diseño común de las secciones /p/<sección>/: antetítulo, título, subtítulo y fecha.
+  Cada sección sobrescribe los bloques que necesita; no hay condiciones por sección.
+{% endcomment %}
+{% block content %}
+<div class="eyebrow">SECCIÓN DE CONTROL DE CALIDAD / {% block eyebrow %}{{ title|upper }}{% endblock %}</div>
+<div class="page-heading">
+  <div>
+    <h1>{% block heading %}{{ title }}{% endblock %}</h1>
+    <p>{% block subtitle %}{{ subtitle|default:'Un espacio conectado para aprender y mejorar la calidad.' }}{% endblock %}</p>
+  </div>
+  <span class="date-chip">◷ &nbsp; {% now 'd M Y' %}</span>
+</div>
+{% block section %}{% endblock %}
+{% endblock %}

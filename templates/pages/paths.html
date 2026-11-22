@@ -1,0 +1,15 @@
+{% extends 'pages/_section.html' %}
+{% block section %}
+<div class="cards">
+  {% for p in paths %}
+  <article class="panel">
+    <span class="course-icon blue">⌘</span>
+    <span class="pill">{{ p.area }}</span>
+    <h2>{{ p.title }}</h2>
+    <p>{{ p.description }}</p>
+    <ol>{% for l in p.lessons.all %}<li>{{ l.title }}</li>{% endfor %}</ol>
+    <a href="/p/lessons/" class="btn-primary">Abrir ruta →</a>
+  </article>
+  {% endfor %}
+</div>
+{% endblock %}

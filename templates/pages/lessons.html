@@ -1,0 +1,15 @@
+{% extends 'pages/_section.html' %}
+{% block section %}
+{% for lesson in lessons %}
+<article class="panel lesson" id="lesson-{{ lesson.pk }}">
+  <span class="eyebrow">{{ lesson.path.title }} / LECCIÓN {{ lesson.position }}</span>
+  <h2>{{ lesson.title }}</h2>
+  <p class="lesson-body">{{ lesson.body|linebreaksbr }}</p>
+  {% if lesson.pk in done %}
+  <span class="pill green">✓ Lección completada</span>
+  {% else %}
+  <form method="post" action="/lesson/{{ lesson.pk }}/complete/">{% csrf_token %}<button class="btn-primary">Marcar como completada ✓</button></form>
+  {% endif %}
+</article>
+{% endfor %}
+{% endblock %}

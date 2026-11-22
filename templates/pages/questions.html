@@ -1,0 +1,20 @@
+{% extends 'pages/_section.html' %}
+{% block section %}
+<div class="panel">
+  <div class="section-heading"><h2>Importar preguntas desde Excel</h2><a href="/template/">↓ Descargar plantilla</a></div>
+  <p>Selecciona un archivo .xlsx de hasta 2 MB y 500 filas. Se validan todas las filas antes de guardar.</p>
+  <form action="/import/" method="post" enctype="multipart/form-data" class="filter-bar">{% csrf_token %}
+    <input type="file" accept=".xlsx" name="file" required>
+    <button class="btn-primary">Validar e importar</button>
+  </form>
+</div>
+<div class="panel">
+  <div class="section-heading"><h2>Banco de preguntas</h2><a href="/admin/hub/question/">Gestionar preguntas ↗</a></div>
+  <table>
+    <tr><th>ID</th><th>Pregunta</th><th>Evaluación</th></tr>
+    {% for q in questions %}
+    <tr><td>{{ q.pk }}</td><td>{{ q.text }}</td><td>{{ q.assessment.title }}</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

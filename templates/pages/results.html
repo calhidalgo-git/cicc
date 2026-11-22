@@ -1,0 +1,21 @@
+{% extends 'pages/_section.html' %}
+{% block section %}
+<div class="panel">
+  <h2>Historial de evaluaciones</h2>
+  <table>
+    <thead><tr><th>Evaluación</th><th>Fecha</th><th>Puntaje</th><th></th></tr></thead>
+    <tbody>
+      {% for a in attempts %}
+      <tr>
+        <td>{{ a.assessment.title }}</td>
+        <td>{{ a.started|date:'d/m/Y H:i' }}</td>
+        <td><span class="pill {% if a.score >= a.assessment.pass_score %}green{% else %}purple{% endif %}">{{ a.score }}%</span></td>
+        <td><a href="/results/{{ a.pk }}/">Ver retroalimentación →</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4">Aún no has completado evaluaciones. <a href="/p/assessments/">Empieza aquí →</a></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

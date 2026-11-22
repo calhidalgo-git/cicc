@@ -1,0 +1,43 @@
+{% extends 'pages/_section.html' %}
+{% comment %}Biblioteca, videoteca, enlaces, módulos temáticos y búsqueda global.{% endcomment %}
+{% block section %}
+<form class="filter-bar">
+  <input name="q" aria-label="Buscar recurso" placeholder="Buscar título, contenido o área..." value="{{ query }}">
+  <select name="area" aria-label="Área">
+    <option value="">Todas las áreas</option>
+    <option {% if area == 'Mainframe' %}selected{% endif %}>Mainframe</option>
+    <option {% if area == 'Distribuido' %}selected{% endif %}>Distribuido</option>
+    <option {% if area == 'Transversal' %}selected{% endif %}>Transversal</option>
+  </select>
+  <button class="btn-primary">Buscar →</button>
+  <a href="?">Limpiar</a>
+</form>
+<div class="section-heading"><h2>{{ resources|length }} recursos para seguir creciendo</h2><span>Curado por el equipo QA</span></div>
+<div class="cards">
+  {% for r in resources %}
+  <a class="resource-card" href="/resource/{{ r.pk }}/">
+    <div class="resource-art {% cycle 'art-green' 'art-blue' 'art-purple' %}">
+      <span>{% if r.kind == 'Video' %}▷{% elif r.kind == 'Enlace' %}↗{% else %}▤{% endif %}</span>
+      <small>{{ r.display_kind|upper }}</small>
+    </div>
+    <div class="card-body">
+      <span class="pill green">{{ r.area }}</span>
+      <h2>{{ r.title }}</h2>
+      <p>{{ r.description|truncatechars:125 }}</p>
+      <div class="card-bottom"><small>{{ r.versions.count }} versiones</small><span>Explorar recurso ↗</span></div>
+    </div>
+  </a>
+  {% empty %}
+  <p>No hay recursos con estos filtros. Prueba otra búsqueda.</p>
+  {% endfor %}
+</div>
+{% if show_search_results %}
+<section class="panel">
+  <h2>Rutas y academia</h2>
+  {% for p in search_paths %}<p><a href="/p/paths/">{{ p.title }}</a></p>{% endfor %}
+  {% for l in search_lessons %}<p><a href="/p/lessons/#lesson-{{ l.pk }}">{{ l.title }}</a> · {{ l.path.title }}</p>{% empty %}<p>Sin lecciones coincidentes. Escribe un término para buscar.</p>{% endfor %}
+  <h2>Evaluaciones</h2>
+  {% for a in search_assessments %}<p><a href="/p/assessments/">{{ a.title }}</a></p>{% empty %}<p>Sin evaluaciones coincidentes.</p>{% endfor %}
+</section>
+{% endif %}
+{% endblock %}

@@ -14,11 +14,9 @@ from ..permissions import TITLES, allowed
 from . import exams, learning, library
 from .common import ctx
 
-PAGE = 'page.html'
-
 
 def dashboard(request, section):
-    return PAGE, {
+    return 'pages/dashboard.html', {
         'resources': Resource.objects.filter(published=True),
         'resource_count': Resource.objects.count(),
         'progress_count': Progress.objects.filter(user=request.user).count(),
@@ -28,11 +26,11 @@ def dashboard(request, section):
 
 
 def questions(request, section):
-    return PAGE, {'questions': Question.objects.select_related('assessment')}
+    return 'pages/questions.html', {'questions': Question.objects.select_related('assessment')}
 
 
 def reports(request, section):
-    return PAGE, {
+    return 'pages/reports.html', {
         'resource_count': Resource.objects.count(),
         'assessment_count': Assessment.objects.count(),
         'users': User.objects.all(),
@@ -44,20 +42,22 @@ def reports(request, section):
 
 
 def users(request, section):
-    return PAGE, {'users': User.objects.all()}
+    return 'pages/users.html', {'users': User.objects.all()}
 
 
 def roles(request, section):
-    return PAGE, {'roles': Group.objects.prefetch_related('permissions')}
+    return 'pages/roles.html', {'roles': Group.objects.prefetch_related('permissions')}
 
 
 def audit(request, section):
-    return PAGE, {'audits': Audit.objects.select_related('user').order_by('-created')[:100]}
+    return 'pages/audit.html', {
+        'audits': Audit.objects.select_related('user').order_by('-created')[:100]
+    }
 
 
 def static_section(request, section):
     """Secciones sin datos propios: mapa de componentes, configuración y respaldos."""
-    return PAGE, {}
+    return f'pages/{section}.html', {}
 
 
 SECTIONS = {

@@ -1,0 +1,14 @@
+{% extends 'pages/_section.html' %}
+{% block section %}
+<div class="panel">
+  <h2>Actividad reciente</h2>
+  <table>
+    <tr><th>Fecha y hora</th><th>Usuario</th><th>Evento</th></tr>
+    {% for a in audits %}
+    <tr><td>{{ a.created|date:'d/m/Y H:i:s' }}</td><td>{{ a.user.username|default:'Sistema' }}</td><td>{{ a.action }}</td></tr>
+    {% empty %}
+    <tr><td colspan="3">Todavía no hay eventos.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

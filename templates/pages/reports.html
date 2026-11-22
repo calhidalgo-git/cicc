@@ -1,0 +1,22 @@
+{% extends 'pages/_section.html' %}
+{% block section %}
+<div class="stats">
+  <div class="stat"><small>Recursos publicados</small><strong>{{ resource_count }}</strong></div>
+  <div class="stat"><small>Evaluaciones</small><strong>{{ assessment_count }}</strong></div>
+  <div class="stat"><small>Profesionales registrados</small><strong>{{ users|length }}</strong></div>
+</div>
+<div class="two-col">
+  <div class="panel">
+    <h2>Recursos por especialidad</h2>
+    <canvas id="areaChart" height="180"></canvas>
+    <p class="muted">Distribución del catálogo de demostración.</p>
+  </div>
+  <div class="panel">
+    <span class="pill teal">ANALÍTICA QA</span>
+    <h2>Del conocimiento a la decisión.</h2>
+    <p>Exporta los intentos finalizados de todos los participantes con su puntaje, área y estado de aprobación.</p>
+    <a class="btn-primary" href="/report.xlsx">↓ Exportar reporte Excel</a>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}{{ chart_data|json_script:'chart-data' }}<script src="/static/report.js"></script>{% endblock %}

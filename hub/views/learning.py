@@ -126,11 +126,11 @@ def qa_advanced_week(request, week):
 
 
 def paths(request, section):
-    return 'page.html', {'paths': LearningPath.objects.all()}
+    return 'pages/paths.html', {'paths': LearningPath.objects.all()}
 
 
 def lessons(request, section):
-    return 'page.html', {
+    return 'pages/lessons.html', {
         'lessons': Lesson.objects.select_related('path'),
         'done': list(
             Progress.objects.filter(user=request.user).values_list('lesson_id', flat=True)

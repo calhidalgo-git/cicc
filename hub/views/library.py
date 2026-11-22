@@ -34,7 +34,12 @@ def resource_list(request, section):
         'module_section': section in MODULES,
         'query': query,
         'area': area,
+        'show_search_results': section == 'search',
     }
+    if section == 'library':
+        context['subtitle'] = (
+            'Explora, comparte y encuentra la respuesta para tu siguiente desafío.'
+        )
     if section == 'search':
         searching = bool(query)
         context.update(
@@ -56,7 +61,7 @@ def resource_list(request, section):
             if searching
             else Assessment.objects.none(),
         )
-    return 'page.html', context
+    return 'pages/resources.html', context
 
 
 @login_required

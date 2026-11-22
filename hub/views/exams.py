@@ -15,12 +15,12 @@ from .common import ctx, log
 
 
 def assessments(request, section):
-    return 'page.html', {'assessments': Assessment.objects.all()}
+    return 'pages/assessments.html', {'assessments': Assessment.objects.all()}
 
 
 def attempt_history(request, section):
     """Sección «Mis resultados»: intentos finalizados de la persona."""
-    return 'page.html', {
+    return 'pages/results.html', {
         'attempts': Attempt.objects.filter(user=request.user, finished=True).select_related(
             'assessment'
         )

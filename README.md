@@ -1,5 +1,7 @@
 # CICC — Centro Integral de Control de Calidad
 
+[![CI](https://github.com/calhidalgo-git/CICC/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/calhidalgo-git/CICC/actions/workflows/ci.yml)
+
 Ampliación del ZIP original, con 32 recursos, 16 lecciones y búsqueda global de recursos publicados, academia, rutas y evaluaciones. Incluye conocimiento del área, ambiente de certificación, mapa conceptual navegable, Mainframe, Distribuido, ciclo de vida y pruebas, QA/ClearQuest, procedimientos, incidentes y glosario. Todos los escenarios y accesos son ficticios.
 
 **Windows, demo sin PostgreSQL:** extrae el ZIP y ejecuta `powershell -ExecutionPolicy Bypass -File .\START-DEMO.ps1` desde la carpeta `cicc`. Consulta [INSTRUCCIONES-WINDOWS.md](INSTRUCCIONES-WINDOWS.md). Acceso: `admin` / `DemoQA!2026`.

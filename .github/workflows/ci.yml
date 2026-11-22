@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  estilo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - name: ruff check
+        run: ruff check .
+      - name: ruff format --check
+        run: ruff format --check .
+
+  pruebas-sqlite:
+    runs-on: ubuntu-latest
+    env:
+      CICC_DEMO: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - name: Comprobación de Django
+        run: python manage.py check
+      - name: Migraciones al día
+        run: python manage.py makemigrations --check --dry-run
+      - name: Pruebas (SQLite)
+        run: python manage.py test hub -v 2
+
+  pruebas-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: cicc
+          POSTGRES_PASSWORD: cicc-ci-ficticia
+          POSTGRES_DB: cicc
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cicc"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    # Modo producción (sin CICC_DEMO). Todos los valores son ficticios y solo sirven para esta prueba.
+    # POSTGRES_USER es superusuario del servicio, así que puede crear la base de pruebas.
+    env:
+      PGDATABASE: cicc
+      PGUSER: cicc
+      PGPASSWORD: cicc-ci-ficticia
+      PGHOST: localhost
+      PGPORT: '5432'
+      DJANGO_SECRET_KEY: clave-ficticia-solo-para-la-integracion-continua-0123456789
+      CICC_ALLOWED_HOSTS: localhost,testserver
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - name: Comprobación de Django
+        run: python manage.py check
+      - name: Migraciones al día
+        run: python manage.py makemigrations --check --dry-run
+      - name: Pruebas (PostgreSQL)
+        # Si falla, deja las líneas clave como anotaciones visibles en la ejecución.
+        run: |
+          python manage.py test hub -v 2 2>&1 | tee test.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            grep -E '^(ERROR|FAIL):|Error|Exception|violates|does not exist|relation ' test.log | tail -n 15 | while IFS= read -r line; do
+              line=${line//'%'/'%25'}
+              echo "::error::${line:0:400}"
+            done
+          fi
+          exit "$status"

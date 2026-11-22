@@ -9,7 +9,7 @@ Las tareas se ejecutan en orden. Una tarea puede empezar solo cuando todas sus d
 | [T01](tareas/T01-higiene-y-linea-base.md) | Higiene del repositorio y línea base | — | M | En revisión |
 | [T02](tareas/T02-configuracion-por-entorno.md) | Configuración por entorno | T01 | M | En revisión |
 | [T03](tareas/T03-integracion-continua.md) | Integración continua | T02 | S | En revisión |
-| [T04](tareas/T04-dividir-vistas-y-plantillas.md) | Dividir vistas y plantillas | T03 | L | Pendiente |
+| [T04](tareas/T04-dividir-vistas-y-plantillas.md) | Dividir vistas y plantillas | T03 | L | En revisión |
 | [T05](tareas/T05-cursos-al-modelo.md) | Cursos al modelo de datos | T04 | L | Pendiente |
 | [T06](tareas/T06-roles-y-permisos.md) | Roles, permisos y administrador | T04 | M | Pendiente |
 | [T07](tareas/T07-evaluaciones-robustas.md) | Evaluaciones robustas | T04 | L | Pendiente |

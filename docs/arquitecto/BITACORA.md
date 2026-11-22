@@ -181,3 +181,73 @@ Criterios de aceptación:
 
 ### Observaciones
 - La insignia apunta a `calhidalgo-git/CICC`. Mientras ese `main` tenga la versión `mejoras-cicc`, mostrará el estado de esa versión y no el de este proyecto.
+
+## T04 — Dividir vistas y plantillas
+- Fecha: 2026-11-21
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T04-dividir-vistas-y-plantillas` en `CICC_original`, creada desde `tarea/T03-integracion-continua`. Sin publicar.
+- Estado: En revisión
+
+### Qué se hizo
+| Commit | Paso | Contenido |
+|---|---|---|
+| `61c9236` | 1 | Red de seguridad (`test_pages.py`) que pasaba con el código anterior. Cubre las 26 páginas de curso (`/qa/fundamentos` y sus 6 semanas, `/qa/avanzado` y sus 11, `/qa/certificacion` y sus 6 temas) con 200 autenticado, 302 a login y 404 fuera de rango. También un texto distintivo por cada una de las 26 secciones de `NAV` y los códigos 200/403/404/302 por sección para `ana`, `diego`, `lucia`, `admin` y sin sesión. |
+| `6d43fd0` | 2–4 | `hub/urls.py` con todas las rutas (mismos patrones y nombres); `config/urls.py` solo con `admin/` e `include('hub.urls')`. `hub/permissions.py` con `NAV`, `GATES`, `allowed()` y `visible_nav(user)`; `hub.views` sigue exportando `NAV`. `hub/views.py` pasa a ser el paquete `hub/views/` con `common`, `pages`, `library`, `learning`, `exams` y `management`, según la sección 5. `hub/services/excel.py` contiene `workbook_response`, la plantilla, la importación y el reporte; es un traslado, sin cambios de lógica. |
+| `806ee04` | 5 | Despachador: `page()` valida la sección (404) y el permiso (403) como antes y llama a una función por sección, que devuelve plantilla y contexto y consulta solo lo que usa. |
+| `830f8fc` | 6 | Una plantilla por sección en `templates/pages/`, con sangría. El diseño común va en `pages/_section.html`, con bloques y sin condiciones por sección. Biblioteca, videoteca, enlaces, módulos y búsqueda comparten `pages/resources.html`. Se elimina `templates/page.html`. |
+| `c4d25d1` | 6 | Valores fijos reemplazados por datos reales (ver abajo). Pruebas en `test_dashboard.py`. |
+| `a368ee4` | 7 | Paquete `hub/tests/` con `test_core.py` (antes `hub/tests.py`), `test_cicc.py`, `test_config.py` y `test_pages.py`, más `test_excel_template.py` (T03) y `test_dashboard.py`. Solo cambian las importaciones. |
+| `5f48d47` | 8 | Límite de consultas (`test_queries.py`) y optimizaciones sin cambiar lo que se muestra. |
+
+Valores fijos del paso 6:
+- `base.html`:
+  - La insignia «02» de Evaluaciones muestra el número real. Viene del procesador de contexto y se calcula solo si la plantilla lo usa; el dashboard reutiliza su propio conteo.
+  - El rol por defecto pasa de `'Administrador'` a `'Sin rol'`.
+- Dashboard:
+  - «12 lecciones» → total real (16 en la demo).
+  - «Áreas de especialización 02» → número de áreas con recursos publicados, sin contar Transversal.
+  - «Tu próximo desafío» → la primera evaluación que la persona no aprobó, o la primera. Muestra su título, minutos y número de preguntas; si no hay evaluaciones, un estado vacío.
+- No se tocaron las comparaciones de títulos de recursos del dashboard ni de `resource()`; son de T05 y quedan marcadas con un comentario.
+
+Optimizaciones del paso 8 (consultas máximas por sección, medidas con intentos y avance en la base):
+
+| Sección | Antes | Después |
+|---|---|---|
+| Biblioteca y búsqueda (`ana`) | 39 (una por tarjeta, por `r.versions.count`) | 7; 10 con texto buscado |
+| Glosario | 23 | 7 |
+| Roles (`admin`) | 85 | 7 |
+| Dashboard (`ana`) | 14 | 11 |
+| Rutas | 10 | 8 |
+| Máximo general | 85 | **11** (`ana` y `lucia`), 9 (`admin`) |
+
+### Desviaciones respecto a la tarea
+- **Áreas de especialización sin Transversal.** La ficha dice «áreas distintas con recursos publicados». El dato se presenta como especialización y viene con el texto «Mainframe + Distribuido», así que no se cuenta Transversal.
+- **Descripción del próximo desafío.** El texto fijo («procesos batch, JCL y validación de datos») era de una evaluación concreta. Ahora es una frase general con el área de la evaluación recomendada.
+- **El dashboard del participante cuenta preguntas.** El paso 6 exige mostrar el número real de preguntas, así que se usa `COUNT` dentro de la consulta de evaluaciones; nunca se leen las filas. Con usuarios y grupos pasa algo parecido: el menú lateral consulta los grupos y permisos del usuario de la sesión, nunca listados. `test_participant_dashboard_reads_only_its_own_data` lo comprueba.
+- **Fragmentos en `templates/partials/`.** No se extrajo ninguno: tras la división no quedan fragmentos repetidos. El diseño común es `pages/_section.html`.
+- **La tabla de Usuarios mantiene `'Administrador'`** como rol por defecto, porque la ficha solo nombra `base.html`.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 61 tests in 34.528s` · `OK`.
+- PostgreSQL 16 local (modo producción, base de pruebas temporal): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 61 tests in 36.548s` · `OK`.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `58 files already formatted`.
+- **Mismo HTML.** Antes de empezar se guardó el HTML de 67 direcciones para `ana`, `lucia` y `admin` (201 páginas: las 26 secciones, búsquedas, los 32 recursos, páginas de curso y resultados), con intentos y avance en la base. Se normalizaron los espacios, el token CSRF y las fechas.
+  - Después de los pasos 2–4, 5 y 6 (división), las 201 páginas son idénticas.
+  - Después del cambio de valores fijos solo cambian los 3 dashboards, con lo previsto: «16 lecciones», el título real de la evaluación y la frase general.
+  - Después del paso 8 son idénticas al paso anterior.
+- **Revisión visual manual a 1440 y 390 px: pendiente de Carlos.** No se tocaron CSS ni JavaScript, y el HTML es el mismo salvo esos valores del dashboard.
+
+Criterios de aceptación:
+- [x] `hub/views.py` y `templates/page.html` ya no existen.
+- [x] Las pruebas anteriores pasan sin modificar sus aserciones; solo cambian sus importaciones.
+- [x] Ninguna sección supera 12 consultas (máximo 11). El dashboard del participante no lista usuarios ni grupos, no consulta la auditoría y solo cuenta preguntas.
+- [x] Las mismas URLs responden los mismos códigos para `ana`, `diego`, `lucia` y `admin` (red de seguridad escrita antes de los cambios).
+- [x] No queda ninguno de los valores fijos del paso 6.
+- [ ] Revisión visual manual: pendiente.
+
+### Preguntas para el arquitecto
+- Ninguna. Las desviaciones están anotadas arriba.
+
+### Observaciones
+- Las vistas fuera de `/p/` (examen, resultados, recurso) no se midieron; el paso 8 solo cubre las secciones.
+- La tabla de Usuarios sigue mostrando «Administrador» para quien no tiene grupo.

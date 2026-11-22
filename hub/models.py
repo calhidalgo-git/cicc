@@ -19,6 +19,21 @@ class Resource(models.Model):
     description = models.TextField()
     url = models.URLField(blank=True)
     published = models.BooleanField(default=True)
+    # Si se indica, el recurso abre esa ruta de aprendizaje con su nombre (decisión de Carlos,
+    # 21-11-2026): así se veían los tres cursos desde la biblioteca antes de T05.
+    learning_path = models.ForeignKey(
+        'LearningPath',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='resources',
+        verbose_name='abre la ruta de aprendizaje',
+        help_text='Si se elige, el recurso muestra el nombre de la ruta y abre su teoría.',
+    )
+
+    @property
+    def display_title(self):
+        return self.learning_path.title if self.learning_path_id else self.title
 
     @property
     def display_kind(self):

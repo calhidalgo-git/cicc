@@ -179,20 +179,35 @@ class CoursePages(CoursesBase):
         response = self.client.get('/p/search/', {'q': phrase})
         self.assertContains(response, '/rutas/certificacion-requerimiento/1/')
 
-    def test_course_resources_show_their_own_page(self):
+    def test_course_resources_open_their_course(self):
+        # Decisión de Carlos (21-11-2026): como antes de T05, estos recursos abren su curso.
+        # Ya no se decide por el título sino por el campo learning_path.
         self.login()
-        for title in (
-            'Guía de pruebas batch y JCL',
-            'Checklist de pruebas de API REST',
-            'Introducción a DB2 para QA',
+        for title, slug in (
+            ('Guía de pruebas batch y JCL', 'fundamentos-qa'),
+            ('Checklist de pruebas de API REST', 'qa-avanzado'),
+            ('Introducción a DB2 para QA', 'certificacion-requerimiento'),
         ):
             resource = Resource.objects.get(title=title)
+            self.assertEqual(resource.learning_path.slug, slug)
             response = self.client.get(f'/resource/{resource.pk}/')
             self.assertEqual(response.status_code, 200)
-            self.assertTemplateUsed(response, 'resource.html')
-            self.assertEqual(response.context['resource'], resource)
+            self.assertTemplateUsed(response, 'learning/path.html')
+            self.assertEqual(response.context['path'].slug, slug)
+            self.assertEqual(resource.display_title, resource.learning_path.title)
 
-    def test_dashboard_shows_real_titles_and_the_courses_in_order(self):
+    def test_renaming_a_resource_does_not_change_where_it_opens(self):
+        self.login()
+        resource = Resource.objects.get(title='Guía de pruebas batch y JCL')
+        resource.title = 'Otro título'
+        resource.save()
+        response = self.client.get(f'/resource/{resource.pk}/')
+        self.assertEqual(response.context['path'].slug, 'fundamentos-qa')
+        other = Resource.objects.filter(learning_path__isnull=True).first()
+        response = self.client.get(f'/resource/{other.pk}/')
+        self.assertTemplateUsed(response, 'resource.html')
+
+    def test_dashboard_shows_the_course_names_and_the_courses_in_order(self):
         self.login()
         response = self.client.get('/p/dashboard/')
         self.assertContains(response, '<h2>Cursos</h2>', html=True)
@@ -202,8 +217,14 @@ class CoursePages(CoursesBase):
             for slug in ('fundamentos-qa', 'qa-avanzado', 'certificacion-requerimiento')
         ]
         self.assertEqual(positions, sorted(positions))
-        for resource in response.context['resources'][:3]:
-            self.assertContains(response, f'<h3>{resource.title}</h3>', html=True)
+        # «Recién llegados» muestra el nombre del curso en los recursos que lo abren.
+        for name in (
+            'Fundamentos QA',
+            'QA Avanzado y Especialización',
+            'Certificación de un Requerimiento de Software',
+        ):
+            self.assertContains(response, f'<h3>{name}</h3>', html=True)
+        self.assertNotContains(response, '<h3>Guía de pruebas batch y JCL</h3>', html=True)
 
     def test_paths_and_lessons_sections_link_to_the_new_pages(self):
         self.login()

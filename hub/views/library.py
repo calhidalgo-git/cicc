@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404, render
 from ..catalog import MODULES
 from ..models import Assessment, LearningPath, Lesson, Resource, ResourceVersion
 from .common import ctx, log
+from .learning import render_path
 
 
 def resource_list(request, section):
@@ -66,7 +67,10 @@ def resource_list(request, section):
 
 @login_required
 def resource(request, pk):
-    r = get_object_or_404(Resource, pk=pk, published=True)
+    r = get_object_or_404(Resource.objects.select_related('learning_path'), pk=pk, published=True)
+    if r.learning_path_id:
+        # Como antes de T05: el recurso muestra la portada de su curso en la misma dirección.
+        return render_path(request, r.learning_path)
     return render(request, 'resource.html', ctx(request, 'library', resource=r))
 
 

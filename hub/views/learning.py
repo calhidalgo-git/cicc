@@ -31,7 +31,11 @@ def progress_of(user, path):
 
 @login_required
 def path_detail(request, slug):
-    path = get_object_or_404(LearningPath, slug=slug)
+    return render_path(request, get_object_or_404(LearningPath, slug=slug))
+
+
+def render_path(request, path):
+    """Portada de la ruta con su introducción, lecciones y avance de la persona."""
     lessons, done = progress_of(request.user, path)
     completed = sum(lesson.pk in done for lesson in lessons)
     context = ctx(

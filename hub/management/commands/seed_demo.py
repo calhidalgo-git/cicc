@@ -213,6 +213,15 @@ class Command(BaseCommand):
         from hub.services.courses import load_courses
 
         load_courses()
+        # Estos recursos abren su curso desde la biblioteca, como en la versión anterior.
+        for title, slug in [
+            ('Guía de pruebas batch y JCL', 'fundamentos-qa'),
+            ('Checklist de pruebas de API REST', 'qa-avanzado'),
+            ('Introducción a DB2 para QA', 'certificacion-requerimiento'),
+        ]:
+            Resource.objects.filter(title=title, learning_path__isnull=True).update(
+                learning_path=LearningPath.objects.get(slug=slug)
+            )
         self.stdout.write(
             self.style.SUCCESS('Datos demo disponibles: admin, ana, diego, lucia / DemoQA!2026')
         )

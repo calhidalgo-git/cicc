@@ -48,7 +48,7 @@ def dashboard(request, section):
         (a for a in assessments if a.pk not in passed), assessments[0] if assessments else None
     )
     return 'pages/dashboard.html', {
-        'resources': published,
+        'resources': published.select_related('learning_path'),
         'resource_count': totals['total'],
         'progress_count': Progress.objects.filter(user=request.user).count(),
         'assessment_count': len(assessments),

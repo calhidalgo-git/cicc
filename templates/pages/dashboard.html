@@ -9,7 +9,7 @@
     <h2>La calidad comienza<br>con lo que aprendes.</h2>
     <p>Continúa tu ruta de automatización y lleva tus<br>pruebas al siguiente nivel.</p>
     <a class="btn-primary" href="/p/paths/">Continuar aprendiendo <span>↗</span></a>
-    <span class="hero-meta">12 lecciones · A tu ritmo</span>
+    <span class="hero-meta">{{ lesson_count }} lecciones · A tu ritmo</span>
   </div>
   <div class="orbital">
     <div class="orbit o1"></div>
@@ -25,7 +25,7 @@
   <div class="stat"><span class="stat-icon green">▤</span><small>Recursos disponibles</small><strong>{{ resource_count|stringformat:'02d' }}</strong><span class="trend">Biblioteca curada <span>↗</span></span></div>
   <div class="stat"><span class="stat-icon blue">⌘</span><small>Lecciones completadas</small><strong>{{ progress_count|stringformat:'02d' }}</strong><span class="trend">Tu progreso personal <span>↗</span></span></div>
   <div class="stat"><span class="stat-icon purple">◇</span><small>Evaluaciones disponibles</small><strong>{{ assessment_count|stringformat:'02d' }}</strong><span class="trend">Valida tus habilidades <span>↗</span></span></div>
-  <div class="stat"><span class="stat-icon teal">▥</span><small>Áreas de especialización</small><strong>02</strong><span class="trend">Mainframe + Distribuido <span>↗</span></span></div>
+  <div class="stat"><span class="stat-icon teal">▥</span><small>Áreas de especialización</small><strong>{{ area_count|stringformat:'02d' }}</strong><span class="trend">Mainframe + Distribuido <span>↗</span></span></div>
 </div>
 <div class="two-col">
   <section>
@@ -46,7 +46,7 @@
     {% for path in paths %}
     <a href="/p/lessons/" class="resource-row">
       <span class="file-icon">▤</span>
-      <div><h3>{{ path.title }}</h3><small>{{ path.area }} <span>•</span> {{ path.lessons.count }} lecciones · Nivel fundamental</small></div>
+      <div><h3>{{ path.title }}</h3><small>{{ path.area }} <span>•</span> {{ path.lesson_count }} lecciones · Nivel fundamental</small></div>
       <span class="pill green">Disponible</span>
       <span>↗</span>
     </a>
@@ -55,11 +55,17 @@
   <aside class="insight">
     <div class="section-heading"><h2>Tu próximo desafío</h2><span>◇</span></div>
     <div class="challenge-art">{ <span>✓</span> }</div>
+    {% if recommended %}
     <span class="pill purple">EVALUACIÓN RECOMENDADA</span>
-    <h2>Fundamentos QA<br>Mainframe</h2>
-    <p>Demuestra tus conocimientos en procesos batch, JCL y validación de datos.</p>
-    <div class="challenge-facts"><span>◷ 20 minutos</span><span>◇ 3 preguntas</span></div>
+    <h2>{{ recommended.title }}</h2>
+    <p>Demuestra tus conocimientos del área {{ recommended.area }} y valida tus habilidades.</p>
+    <div class="challenge-facts"><span>◷ {{ recommended.minutes }} minutos</span><span>◇ {{ recommended.question_count }} pregunta{{ recommended.question_count|pluralize }}</span></div>
     <a class="btn-primary full" href="/p/assessments/">Explorar evaluaciones →</a>
+    {% else %}
+    <span class="pill purple">SIN EVALUACIONES</span>
+    <h2>Todavía no hay evaluaciones</h2>
+    <p>Cuando el equipo publique una evaluación, la verás aquí.</p>
+    {% endif %}
     <div class="tip"><span>✦</span><p><b>Un poco cada día, un gran avance.</b><br>Combina teoría y práctica para afianzar tus habilidades.</p></div>
   </aside>
 </div>

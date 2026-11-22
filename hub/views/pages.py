@@ -5,23 +5,50 @@ Cada función devuelve (plantilla, contexto) y consulta solo lo que usa su plant
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User
+from django.db.models import Count, F
 from django.http import Http404, HttpResponse
 from django.shortcuts import render
 
 from ..catalog import MODULES
-from ..models import Assessment, Audit, LearningPath, Progress, Question, Resource
+from ..models import (
+    Assessment,
+    Attempt,
+    Audit,
+    LearningPath,
+    Lesson,
+    Progress,
+    Question,
+    Resource,
+)
 from ..permissions import TITLES, allowed
 from . import exams, learning, library
 from .common import ctx
 
 
 def dashboard(request, section):
+    published = Resource.objects.filter(published=True)
+    assessments = list(
+        Assessment.objects.annotate(question_count=Count('questions')).order_by('pk')
+    )
+    passed = set(
+        Attempt.objects.filter(
+            user=request.user, finished=True, score__gte=F('assessment__pass_score')
+        ).values_list('assessment_id', flat=True)
+    )
+    # El próximo desafío es la primera evaluación que la persona no ha aprobado (o la primera).
+    recommended = next(
+        (a for a in assessments if a.pk not in passed), assessments[0] if assessments else None
+    )
     return 'pages/dashboard.html', {
-        'resources': Resource.objects.filter(published=True),
+        'resources': published,
         'resource_count': Resource.objects.count(),
         'progress_count': Progress.objects.filter(user=request.user).count(),
-        'assessment_count': Assessment.objects.count(),
-        'paths': LearningPath.objects.all(),
+        'assessment_count': len(assessments),
+        'lesson_count': Lesson.objects.count(),
+        # Áreas de especialización: las distintas de Transversal que tienen recursos publicados.
+        'area_count': published.exclude(area='Transversal').values('area').distinct().count(),
+        'recommended': recommended,
+        'paths': LearningPath.objects.annotate(lesson_count=Count('lessons')),
     }
 
 

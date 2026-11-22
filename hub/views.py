@@ -420,9 +420,11 @@ def excel_template(request):
             'explicacion',
         ]
     )
+    # La fila de ejemplo usa una evaluación que existe: los IDs no siempre empiezan en 1.
+    first = Assessment.objects.order_by('pk').values_list('pk', flat=True).first()
     ws.append(
         [
-            1,
+            first or 1,
             '¿Qué valida un smoke test?',
             'Flujo crítico',
             'Color del logo',

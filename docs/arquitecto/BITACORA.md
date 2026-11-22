@@ -243,7 +243,7 @@ Criterios de aceptación:
 - [x] Ninguna sección supera 12 consultas (máximo 11). El dashboard del participante no lista usuarios ni grupos, no consulta la auditoría y solo cuenta preguntas.
 - [x] Las mismas URLs responden los mismos códigos para `ana`, `diego`, `lucia` y `admin` (red de seguridad escrita antes de los cambios).
 - [x] No queda ninguno de los valores fijos del paso 6.
-- [ ] Revisión visual manual: pendiente.
+- [x] Revisión visual manual: Carlos la hizo el 21-11-2026 y dio su visto bueno.
 
 ### Preguntas para el arquitecto
 - Ninguna. Las desviaciones están anotadas arriba.
@@ -251,3 +251,6 @@ Criterios de aceptación:
 ### Observaciones
 - Las vistas fuera de `/p/` (examen, resultados, recurso) no se midieron; el paso 8 solo cubre las secciones.
 - La tabla de Usuarios sigue mostrando «Administrador» para quien no tiene grupo.
+
+### Revisión de Carlos
+- 21-11-2026: Carlos revisó la versión de T04 en la demo y la dio por buena («todo ok»).

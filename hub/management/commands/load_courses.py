@@ -39,3 +39,10 @@ class Command(BaseCommand):
                 f'reescritas: {summary["updated"]}; recursos vinculados: {summary["linked"]}'
             )
         )
+        for title in summary['ambiguous']:
+            self.stdout.write(
+                self.style.WARNING(
+                    f'Hay más de un recurso titulado «{title}»: no se vinculó ninguno. '
+                    'Elige en el administrador cuál abre su curso.'
+                )
+            )

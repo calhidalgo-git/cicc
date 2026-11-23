@@ -87,20 +87,35 @@ BACKUP_MODELS = [
 # vuelve a aplicar la migración 0009 o en otra instalación (revisión de Codex, 22-11-2026). Sus
 # bloques apuntan a la sección por el slug, y su autor por el nombre de usuario.
 NATURAL_KEY_MODELS = {SectionPage, SectionBlock}
+# El avance, los intentos y la auditoría guardan a la persona por su nombre de usuario y no por su
+# número interno, que puede ser otro en la instalación donde se restaura (tercera revisión de
+# Codex, 23-11-2026). Si falta la cuenta, loaddata se detiene sin aplicar nada.
+USER_MODELS = {Progress, Attempt, Audit}
+# Lo que se carga junto con cada fila para escribir esas claves sin una consulta por fila
+# (tercera revisión de Codex, 23-11-2026).
+RELATED = {
+    SectionPage: ('updated_by',),
+    SectionBlock: ('page',),
+    Progress: ('user',),
+    Attempt: ('user',),
+    Audit: ('user',),
+}
 
 
 def backup_json():
     """Respaldo de contenido en JSON, con el formato de ``dumpdata`` que lee ``loaddata``."""
     objects = []
     for model in BACKUP_MODELS:
-        natural = model in NATURAL_KEY_MODELS
+        queryset = model.objects.all()
+        if model in RELATED:
+            queryset = queryset.select_related(*RELATED[model])
         objects.extend(
             json.loads(
                 serializers.serialize(
                     'json',
-                    model.objects.all(),
-                    use_natural_foreign_keys=natural,
-                    use_natural_primary_keys=natural,
+                    queryset,
+                    use_natural_foreign_keys=model in NATURAL_KEY_MODELS | USER_MODELS,
+                    use_natural_primary_keys=model in NATURAL_KEY_MODELS,
                 )
             )
         )

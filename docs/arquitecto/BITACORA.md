@@ -610,3 +610,52 @@ Hallazgos de `revision-codex-original-2.md`:
 
 ### Preguntas para el arquitecto
 - Ninguna.
+
+## T05 — Correcciones de la tercera revisión de Codex (23-11-2026)
+- Fecha: 2026-11-23
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T05-cursos-al-modelo`, en la carpeta de Carlos. Commit de código `3f8333f`. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+Hallazgos de `revision-codex-original-3.md` que tocan T05:
+- **Alta: ejercicios propios junto a las lecciones oficiales.** Una ruta con las seis lecciones oficiales y dos ejercicios en la posición 0 recibía la dirección oficial. Al renumerar, los ejercicios pasaban a las posiciones 1 y 2, y `load_courses --force` los reescribía con el texto oficial.
+  - Ahora cada posición del curso debe tener una sola lección, la oficial.
+  - Solo se admiten lecciones propias **después** de la última lección oficial, porque ahí conservan su número y `--force` no las toca.
+  - Una lección propia antes de la última, o una posición repetida, deja la ruta como local.
+- **Alta: al revertir, la dirección oficial pasaba a una copia.** Si dos rutas cumplían la regla, la tomaba la de número interno menor, que podía ser una copia creada antes que el curso.
+  - Ahora, con dos o más candidatas, ninguna toma la dirección. `load_courses` crea el curso aparte, y el avance sigue en su ruta.
+  - El respaldo hecho antes de revertir ya se puede restaurar justo después de migrar, como indica el README: devuelve la dirección y el avance al curso correcto.
+- **Media: recurso propio con el título de uno histórico.** `link_legacy_resources` reconocía el recurso por título y vínculo vacío.
+  - Ahora, si hay más de un recurso con ese título, no vincula ninguno. Vale para la carga normal, `--force` y `--relink`.
+  - `load_courses` avisa: «Hay más de un recurso titulado «…»: no se vinculó ninguno. Elige en el administrador cuál abre su curso.»
+- **Media: cambio en lote de la dirección oficial.** Nuevo `LearningPathQuerySet`.
+  - `update(slug=…)` rechaza cambiar una dirección oficial o dársela a otra ruta. `bulk_update(…, ['slug'])` aplica las mismas reglas que `save()`.
+  - Las rutas locales y los demás campos se siguen actualizando en lote.
+- **Alta (en T05 y T12): respaldo con cuentas numeradas de otra forma.** `backup_json()` guarda en `Progress`, `Attempt` y `Audit` a la persona por su nombre de usuario (clave natural de `User`), con `select_related('user')`.
+  - Si falta la cuenta, `loaddata` se detiene sin aplicar nada.
+  - Un respaldo anterior, con números, se sigue cargando.
+- **README.** Se explican la regla nueva al revertir, el aviso de títulos repetidos y el requisito de las cuentas al restaurar. Un respaldo anterior al 23-11-2026 conviene volver a exportarlo.
+
+### Desviaciones respecto a la tarea
+- **Migración 0005 modificada otra vez.** Solo cambia su lógica de datos. Las bases que ya la aplicaron no se ven afectadas.
+- **Un curso oficial con una lección propia antes de la última, o con dos candidatas, queda local al volver a migrar.** Es la consecuencia de no adivinar el origen, y está en el README.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 126 tests in 79.440s` · `OK`.
+- PostgreSQL 16 local (modo producción, clave aleatoria, base de pruebas temporal): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 126 tests in 79.336s` · `OK`.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `63 files already formatted`.
+- **Pruebas nuevas** (`hub/tests/test_codex_review_3.py`, 13), una o más por hallazgo:
+  - Con el código anterior, las de los hallazgos de cursos, recursos y cambio en lote dan `FAILED (failures=7)`.
+  - Las del respaldo, con el `backup_json` anterior, dan `FAILED (failures=2)`.
+- **Copia de la demo de Carlos** (en `CICC-local\tmp-t05-demo`, borrada al terminar; el `demo.sqlite3` conservó su huella `333f4566e875e09a`):
+  - Partida: 6 rutas, 39 lecciones, 23 con HTML y 3 vínculos.
+  - `migrate hub 0003` y `migrate`: los tres cursos recuperaron `fundamentos-qa`, `qa-avanzado` y `certificacion-requerimiento` con los números 4, 5 y 6.
+  - `load_courses` → 0 en todo. `--relink` → `recursos vinculados: 3`. `--force` → `reescritas: 26`.
+  - Quedaron 23 lecciones con HTML y 3 vínculos.
+
+### Preguntas para el arquitecto
+- Sigue abierta: registrar en D4 el veto de Carlos.
+
+### Observaciones
+- El hallazgo de Codex sobre el texto plano que queda vacío al guardar una lección con `<p> </p>` es previo a T05 (`Lesson.save()`) y no se cambió.

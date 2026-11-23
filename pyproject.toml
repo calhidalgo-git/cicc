@@ -1,0 +1,18 @@
+# Este archivo solo configura herramientas de desarrollo. Las dependencias siguen en requirements.txt.
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["hub/migrations", ".venv"]
+
+[tool.ruff.format]
+# El código existente usa comillas simples; se conservan para que el formato no cambie cada cadena.
+quote-style = "single"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+# Textos largos de contenido (catálogo y datos de demostración); partirlos no aporta legibilidad.
+"hub/catalog.py" = ["E501"]
+"hub/management/commands/seed_demo.py" = ["E501"]

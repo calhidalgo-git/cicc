@@ -306,3 +306,47 @@ Criterios de aceptación:
 - La prueba original `test_all_admin_screens` pasa sin cambios. En `test_courses.py`, `test_course_resources_show_their_own_page` se reemplazó por `test_course_resources_open_their_course` y `test_renaming_a_resource_does_not_change_where_it_opens`.
 - Verificación: SQLite y PostgreSQL `Ran 81 tests` · `OK`. `ruff check` y `ruff format --check` sin hallazgos. `makemigrations --check` → `No changes detected`.
 - Pregunta para el arquitecto: registrar este veto de Carlos en D4.
+
+## T12 — Una página con teoría para cada opción del menú
+- Fecha: 2026-11-22
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T12-paginas-del-menu` en `CICC_original`, creada desde `tarea/T05-cursos-al-modelo` (`beec6b6`), en el worktree `CICC-local\original\T12`. Commits `88048ed`, `3bf28e5`, `e7526ea` y `9bb57b9`. Sin publicar.
+- Estado: En revisión
+
+### Punto de partida
+- Tarea pedida por Carlos el 22-11-2026, antes que T06 y T07. La carpeta de Carlos (`CICC_original`, rama T05) estaba limpia, sin stash y sin `.env`; `demo.sqlite3` no está versionada. No se cambió de rama ni se tocó nada allí.
+- Ya existía el respaldo JSON (`/backup/`), pero no una restauración propia: se restaura con `manage.py loaddata`.
+
+### Qué se hizo
+| Commit | Contenido |
+|---|---|
+| `88048ed` | Ficha `tareas/T12-paginas-del-menu.md` y T12 en `PLAN.md`. |
+| `3bf28e5` | `SectionPage` (slug único, título, `intro_html`, `intro` en texto plano, origen, fecha y autor de la última edición) y `SectionBlock` (título, `body_html`, `body`, posición). Migraciones 0008 (tablas) y 0009 (una página vacía por cada una de las 26 entradas de `NAV`; al revertir quita solo las vacías). `hub/services/pages.py` y comando `load_pages` (crea las páginas que falten y carga `hub/content/pages/<slug>.md` o `.html`; `--force`). Administrador con bloques en línea; un receptor `pre_save` vuelve a sanear el HTML de páginas, bloques, rutas y lecciones al restaurar con `loaddata`. `seed_demo` da `view_sectionpage` y `change_sectionpage` al Editor (el Administrador ya tiene todos) y ejecuta `load_pages`. Carpeta `hub/content/pages/` con `README.md` y `_ejemplo.md` ficticio. |
+| `e7526ea` | `pages/_section.html` dibuja la teoría arriba del contenido de cada sección, o «Contenido pendiente», con «Editar contenido» para quien tiene el permiso. La Búsqueda global agrega «Teoría de las secciones». El respaldo incluye las dos tablas. Seis reglas CSS nuevas en `hub.css` (versión del enlace actualizada). |
+| `9bb57b9` | `hub/tests/test_section_pages.py`: 30 pruebas. |
+
+### Desviaciones respecto a la tarea
+- **Cómo se protege una edición manual.** Guardar en el administrador marca la página con origen «administrador»; `load_pages` no la toca sin `--force`. Una página cargada desde archivo se actualiza si el archivo cambió (se compara un hash) y no se vuelve a escribir si no cambió.
+- **Un único permiso.** Los bloques en línea usan `hub.change_sectionpage`, no permisos propios. En el administrador las páginas no se crean ni se borran: hay una por opción del menú.
+- **Sin restricción única en (página, posición)**, para poder intercambiar posiciones en una sola edición del administrador. El orden es `position`, `id`.
+- **Markdown propio y limitado** (párrafos, `###`, listas, negrita, cursiva, código y enlaces), porque la sección 8 no permite dependencias nuevas. El HTML escrito dentro de un `.md` se muestra como texto.
+- **El archivo de ejemplo empieza con `_`** y no se carga, para que la demo no muestre texto ficticio como si fuera teoría.
+- **Búsqueda:** solo muestra teoría de secciones que la persona puede abrir, y no muestra páginas vacías aunque coincida su título.
+- **Restauración:** no había un comando de restauración; el saneado se aplica a cualquier `loaddata`.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 111 tests in 69.941s` · `OK`.
+- PostgreSQL 16 local (`Iniciar-PostgreSQL.ps1`, modo producción, base temporal `cicc_t12_tmp` creada y borrada): `System check identified no issues (0 silenced).` · `No changes detected` · `Found 111 test(s)` · `OK`.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `67 files already formatted`.
+- **Copia de `demo.sqlite3`** en el worktree: antes 6 rutas, 39 lecciones, 4 usuarios y 32 recursos. `migrate` aplicó 0008 y 0009: 26 páginas y los mismos datos. `load_pages` dos veces: `Páginas creadas: 0; cargadas desde archivo: 0`. `migrate hub 0007` revirtió sin error (la tabla desaparece) y volver a migrar dejó 26 páginas. El hash SHA-256 del `demo.sqlite3` original fue el mismo antes y después (`333f4566…53ed09`).
+- **Consultas:** el máximo por sección sigue en el límite de T04: 12, en `lucia /p/search/?q=prueba` (+1 por la teoría y +1 por buscarla). `test_queries` pasa sin cambios.
+- **HTML renderizado** (cliente de pruebas sobre la copia de la demo): el dashboard con el ejemplo cargado muestra el panel de teoría arriba del bloque principal, y el glosario muestra «Contenido pendiente · Editar contenido ↗» para `diego`. Después se vació otra vez el ejemplo.
+- **Revisión visual en el navegador: pendiente de Carlos.** La extensión de Chrome no pudo abrir el servidor local.
+
+### Preguntas para el arquitecto
+- Ninguna.
+
+### Observaciones
+- La búsqueda con texto quedó justo en el límite de 12 consultas. Una sección nueva que consulte más tendrá que optimizar.
+- Las tablas de respaldo guardan `updated_by` como id de usuario, igual que `Audit`, `Progress` y `Attempt`; restaurar en una base sin esos usuarios falla. Es de T10.
+- En una base que ya existía, el grupo Editor recibe el permiso nuevo al volver a ejecutar `seed_demo` (solo demo) o, más adelante, `bootstrap_roles` (T06).

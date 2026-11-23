@@ -17,7 +17,7 @@ Las tareas se ejecutan en orden. Una tarea puede empezar solo cuando todas sus d
 | [T09](tareas/T09-despliegue-servidor-interno.md) | Despliegue en servidor interno | T02, T07 | M | Pendiente |
 | [T10](tareas/T10-respaldos.md) | Respaldos y restauración | T09 | S | Pendiente |
 | [T11](tareas/T11-documentacion-y-cierre.md) | Documentación y cierre | todas | S | Pendiente |
-| [T12](tareas/T12-paginas-del-menu.md) | Una página con teoría para cada opción del menú | T05 | M | En curso |
+| [T12](tareas/T12-paginas-del-menu.md) | Una página con teoría para cada opción del menú | T05 | M | En revisión |
 
 T12 la pidió Carlos el 22-11-2026 y va antes que T06 y T07, que quedan en espera hasta que termine.
 

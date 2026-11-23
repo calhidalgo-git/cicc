@@ -25,7 +25,7 @@
   <div class="stat"><span class="stat-icon green">▤</span><small>Recursos disponibles</small><strong>{{ resource_count|stringformat:'02d' }}</strong><span class="trend">Biblioteca curada <span>↗</span></span></div>
   <div class="stat"><span class="stat-icon blue">⌘</span><small>Lecciones completadas</small><strong>{{ progress_count|stringformat:'02d' }}</strong><span class="trend">Tu progreso personal <span>↗</span></span></div>
   <div class="stat"><span class="stat-icon purple">◇</span><small>Evaluaciones disponibles</small><strong>{{ assessment_count|stringformat:'02d' }}</strong><span class="trend">Valida tus habilidades <span>↗</span></span></div>
-  <div class="stat"><span class="stat-icon teal">▥</span><small>Áreas de especialización</small><strong>{{ area_count|stringformat:'02d' }}</strong><span class="trend">Mainframe + Distribuido <span>↗</span></span></div>
+  <div class="stat"><span class="stat-icon teal">▥</span><small>Áreas de especialización</small><strong>{{ area_count|stringformat:'02d' }}</strong><span class="trend">{{ area_names|join:' + ' }} <span>↗</span></span></div>
 </div>
 <div class="two-col">
   <section>

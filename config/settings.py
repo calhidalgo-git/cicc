@@ -23,12 +23,21 @@ CICC_DEMO = env_bool('CICC_DEMO', False)
 DEBUG = env_bool('DEBUG', CICC_DEMO)
 
 _DEV_SECRET = 'local-demo-only-not-for-production'
-# Claves publicadas en el repositorio: la de demo, la que tenía esta configuración antes de T02 y
-# el texto de ejemplo habitual. Nadie debe poder arrancar producción con ellas.
+# Claves que ya se distribuyeron con el repositorio. Nadie debe poder arrancar producción con ellas.
+# Las pruebas y la integración continua generan una clave aleatoria en cada ejecución.
 _PUBLIC_SECRETS = {
+    # Clave de la demo.
     _DEV_SECRET,
+    # La que tenía esta configuración antes de T02.
     'local-prototype-only-change-before-deployment',
+    # Ejemplo del README anterior a T02 (T01, README.md, línea 25).
+    'reemplazar-con-un-secreto-aleatorio',
+    # Texto de ejemplo habitual.
     'genera-una-clave-aleatoria',
+    # Clave fija que usaban las pruebas de configuración de T02.
+    'clave-ficticia-de-prueba-' + 'x' * 40,
+    # Clave fija que usaba el flujo de integración continua de T03.
+    'clave-ficticia-solo-para-la-integracion-continua-0123456789',
 }
 if CICC_DEMO:
     SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', '').strip() or _DEV_SECRET

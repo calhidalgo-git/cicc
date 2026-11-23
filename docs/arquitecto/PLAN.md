@@ -6,7 +6,7 @@ Las tareas se ejecutan en orden. Una tarea puede empezar solo cuando todas sus d
 
 | Tarea | Título | Depende de | Tamaño | Estado |
 |---|---|---|---|---|
-| [T01](tareas/T01-higiene-y-linea-base.md) | Higiene del repositorio y línea base | — | M | En revisión |
+| [T01](tareas/T01-higiene-y-linea-base.md) | Higiene del repositorio y línea base | — | M | Hecha |
 | [T02](tareas/T02-configuracion-por-entorno.md) | Configuración por entorno | T01 | M | En revisión |
 | [T03](tareas/T03-integracion-continua.md) | Integración continua | T02 | S | En revisión |
 | [T04](tareas/T04-dividir-vistas-y-plantillas.md) | Dividir vistas y plantillas | T03 | L | En revisión |

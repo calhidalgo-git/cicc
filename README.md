@@ -1,6 +1,6 @@
 # CICC — Centro Integral de Control de Calidad
 
-[![CI](https://github.com/calhidalgo-git/CICC/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/calhidalgo-git/CICC/actions/workflows/ci.yml)
+**Integración continua:** `.github/workflows/ci.yml` revisa el estilo y ejecuta las pruebas en SQLite y en PostgreSQL. Este proyecto todavía no tiene un repositorio remoto aprobado, así que no muestra insignia de estado; los resultados de cada tarea se registran en `docs/arquitecto/BITACORA.md`.
 
 Ampliación del ZIP original, con 32 recursos, 16 lecciones y búsqueda global de recursos publicados, academia, rutas y evaluaciones. Incluye conocimiento del área, ambiente de certificación, mapa conceptual navegable, Mainframe, Distribuido, ciclo de vida y pruebas, QA/ClearQuest, procedimientos, incidentes y glosario. Todos los escenarios y accesos son ficticios.
 

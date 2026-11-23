@@ -659,3 +659,36 @@ Hallazgos de `revision-codex-original-3.md` que tocan T05:
 
 ### Observaciones
 - El hallazgo de Codex sobre el texto plano que queda vacío al guardar una lección con `<p> </p>` es previo a T05 (`Lesson.save()`) y no se cambió.
+
+## T12 — Correcciones de la tercera revisión de Codex (23-11-2026)
+- Fecha: 2026-11-23
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T12-paginas-del-menu`, en `CICC-local\original\T12`. Merge de T05 con las correcciones: `9553baf`. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+- **Correcciones de T05.** Llegan con el merge `9553baf`: los ejercicios propios, la dirección oficial al revertir, los títulos repetidos, el cambio en lote y el respaldo por nombre de usuario. Ver la entrada de T05 del mismo día.
+- **Alta: avances, notas y auditoría asignados a otra cuenta.** El conflicto del merge en `hub/views/management.py` se resolvió así:
+  - `SectionPage` y `SectionBlock` siguen con su clave natural, como en la segunda corrección.
+  - `Progress`, `Attempt` y `Audit` guardan a la persona por su nombre de usuario.
+  - El autor de una página ya se guardaba por nombre.
+- **Baja: una consulta por bloque al exportar.** `backup_json()` carga junto con cada fila lo que necesita para escribir su clave: la página del bloque, el autor de la página y la persona del avance, del intento o de la auditoría (`RELATED`, con `select_related`). El número de consultas ya no crece con las filas.
+- **Pruebas nuevas** (`hub/tests/test_backup_queries.py`, 2):
+  - 50 bloques, 20 avances y 20 intentos no agregan consultas al respaldo.
+  - Restauración con las cuentas creadas en otro orden: el avance y el intento vuelven a Ana, la página a Diego como autor, y el bloque se ve en `/p/glossary/`.
+  - Las 13 pruebas de T05 (`test_codex_review_3.py`) también corren en T12.
+
+### Desviaciones respecto a la tarea
+Ninguna.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 159 tests in 97.353s` · `OK`.
+- PostgreSQL 16 local (modo producción, clave aleatoria, base de pruebas temporal): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 159 tests in 118.073s` · `OK`.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `70 files already formatted`.
+- Con el `backup_json` anterior, `test_backup_queries` da `FAILED (failures=2)`: `62 != 12` consultas, y el avance de Ana restaurado a nombre de Diego (`'diego' != 'ana'`).
+
+### Preguntas para el arquitecto
+Ninguna nueva.
+
+### Observaciones
+- La restauración se probó dentro de la suite en los dos motores, no con dos bases reales separadas como hizo Codex.

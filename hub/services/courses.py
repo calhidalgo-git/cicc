@@ -75,15 +75,35 @@ def read_courses():
     return sorted(courses, key=lambda course: course['position'])
 
 
+def official_slugs():
+    """Slugs de los cursos oficiales. Ninguna ruta local puede usarlos."""
+    return frozenset(course['slug'] for course in read_courses())
+
+
+def link_legacy_resources(path, titles):
+    """Vincula con su curso los recursos que lo abrían antes de T05 (veto de Carlos a D4).
+
+    Solo toca los recursos sin ruta asignada: no cambia una ruta elegida en el administrador.
+    """
+    from hub.models import Resource
+
+    return Resource.objects.filter(title__in=titles, learning_path__isnull=True).update(
+        learning_path=path
+    )
+
+
 @transaction.atomic
 def load_courses(force=False):
     """Crea las rutas y lecciones que falten; con ``force`` también reescribe las existentes.
 
-    Identifica las rutas por ``slug`` y las lecciones por ``position``.
+    Identifica las rutas por ``slug`` (reservado para los cursos oficiales: una ruta local con
+    el mismo nombre tiene otro slug y no se toca) y las lecciones por ``position``.
+
+    Al crear un curso, o con ``force``, vincula los recursos históricos que lo abrían.
     """
     from hub.models import LearningPath, Lesson
 
-    summary = {'paths': 0, 'lessons': 0, 'updated': 0}
+    summary = {'paths': 0, 'lessons': 0, 'updated': 0, 'linked': 0}
     for course in read_courses():
         fields = {
             'title': course['title'],
@@ -92,14 +112,22 @@ def load_courses(force=False):
             'position': course['position'],
             'intro_html': (course['dir'] / 'intro.html').read_text(encoding='utf-8'),
         }
-        path, created = LearningPath.objects.get_or_create(slug=course['slug'], defaults=fields)
+        path = LearningPath.objects.filter(slug=course['slug']).first()
+        created = path is None
         if created:
+            path = LearningPath(slug=course['slug'], **fields)
+            path._official_course = True
+            path.save()
             summary['paths'] += 1
         elif force:
             for name, value in fields.items():
                 setattr(path, name, value)
             path.save()
             summary['updated'] += 1
+        if created or force:
+            summary['linked'] += link_legacy_resources(
+                path, course.get('legacy_resource_titles', [])
+            )
         existing = {lesson.position: lesson for lesson in path.lessons.all()}
         for item in course['lessons']:
             body = (course['dir'] / item['file']).read_text(encoding='utf-8')

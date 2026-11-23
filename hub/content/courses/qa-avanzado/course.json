@@ -4,6 +4,11 @@
   "description": "El aseguramiento de la calidad de software (QA) ha evolucionado más allá de las pruebas funcionales básicas, convirtiéndose en un componente estratégico dentro del ciclo de vida del desarrollo.",
   "position": 2,
   "area": "Transversal",
+  "legacy_resource_titles": [
+    "Checklist de pruebas de API REST",
+    "Checklist de pruebas API REST",
+    "QA Avanzado y Especialización"
+  ],
   "lessons": [
     {
       "position": 1,

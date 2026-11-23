@@ -4,6 +4,12 @@
   "description": "La certificación de un requerimiento de software es el proceso formal mediante el cual se valida que un requerimiento específico ha sido cumplido, probado y documentado de acuerdo con estándares de calidad y normativas aplicables.",
   "position": 3,
   "area": "Transversal",
+  "legacy_resource_titles": [
+    "Introducción a DB2 para QA",
+    "Certificacion en la Sección",
+    "Certificación en la Sección",
+    "Certificación de un Requerimiento de Software"
+  ],
   "lessons": [
     {
       "position": 1,

@@ -2,6 +2,8 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 from django.utils.text import slugify
 
 
@@ -58,15 +60,22 @@ class ResourceVersion(models.Model):
         ]
 
 
-def unique_slug(model, title, exclude_pk=None):
-    """``slugify(title)`` con un sufijo -2, -3… si ya existe."""
+def unique_slug(model, title, exclude_pk=None, reserved=()):
+    """``slugify(title)`` con un sufijo -2, -3… si ya existe o está reservado."""
     base = slugify(title)[:190] or 'ruta'
     candidate, number = base, 2
     others = model.objects.exclude(pk=exclude_pk) if exclude_pk else model.objects.all()
-    while others.filter(slug=candidate).exists():
+    while candidate in reserved or others.filter(slug=candidate).exists():
         candidate = f'{base}-{number}'
         number += 1
     return candidate
+
+
+def official_course_slugs():
+    """Slugs reservados para los cursos oficiales de hub/content/courses/."""
+    from .services.courses import official_slugs
+
+    return official_slugs()
 
 
 class LearningPath(models.Model):
@@ -83,11 +92,43 @@ class LearningPath(models.Model):
     class Meta:
         ordering = ['position', 'id']
 
+    def stored_slug(self):
+        if self.pk is None:
+            return None
+        return LearningPath.objects.filter(pk=self.pk).values_list('slug', flat=True).first()
+
+    def takes_official_slug(self):
+        """True si esta ruta tomaría el slug de un curso oficial que no era suyo.
+
+        Solo load_courses crea los cursos oficiales (marca ``_official_course``). Una ruta local
+        con el mismo nombre recibe otro slug y queda separada, con su contenido y su avance.
+        """
+        if getattr(self, '_official_course', False):
+            return False
+        return self.slug in official_course_slugs() and self.stored_slug() != self.slug
+
+    def clean(self):
+        super().clean()
+        if self.slug and self.takes_official_slug():
+            raise ValidationError(
+                {
+                    'slug': 'Esta dirección está reservada para un curso oficial. '
+                    'Elige otra para esta ruta.'
+                }
+            )
+
     def save(self, *args, **kwargs):
         from .services.courses import sanitize_html
 
         if not self.slug:
-            self.slug = unique_slug(LearningPath, self.title, exclude_pk=self.pk)
+            self.slug = unique_slug(
+                LearningPath, self.title, exclude_pk=self.pk, reserved=official_course_slugs()
+            )
+        elif self.takes_official_slug():
+            raise ValidationError(
+                f'El slug {self.slug!r} está reservado para un curso oficial; '
+                'solo load_courses puede usarlo.'
+            )
         self.intro_html = sanitize_html(self.intro_html)
         super().save(*args, **kwargs)
 
@@ -178,3 +219,40 @@ class Audit(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
     action = models.CharField(max_length=200)
     created = models.DateTimeField(auto_now_add=True)
+
+
+@receiver(pre_save, sender=LearningPath)
+def restore_learning_path(sender, instance, raw=False, **kwargs):
+    """Restauración con loaddata (save() no se llama): admite respaldos JSON anteriores a T05.
+
+    Un respaldo de T04 no trae slug. La ruta recibe uno propio, nunca el de un curso oficial,
+    porque antes de T05 los cursos no estaban en la base. Si la fila del respaldo ocuparía un
+    curso oficial que ya existe en la base, la restauración se detiene sin aplicar nada.
+    """
+    if not raw:
+        return
+    stored = instance.stored_slug()
+    if stored and stored in official_course_slugs() and instance.slug != stored:
+        raise ValueError(
+            f'La ruta {instance.pk} del respaldo ocuparía el curso oficial {stored!r}. '
+            'Restaura el respaldo en una base vacía (solo migrate) y ejecuta después '
+            'load_courses.'
+        )
+    if not instance.slug:
+        instance.slug = unique_slug(
+            LearningPath, instance.title, exclude_pk=instance.pk, reserved=official_course_slugs()
+        )
+
+
+@receiver(pre_save, sender=Lesson)
+def restore_lesson(sender, instance, raw=False, **kwargs):
+    """Restauración con loaddata: una lección con la posición repetida pasa al final de su ruta.
+
+    Antes de T05 la posición podía repetirse; ahora es única en cada ruta.
+    """
+    if not raw:
+        return
+    others = Lesson.objects.filter(path_id=instance.path_id).exclude(pk=instance.pk)
+    if others.filter(position=instance.position).exists():
+        last = others.aggregate(models.Max('position'))['position__max'] or 0
+        instance.position = last + 1

@@ -15,6 +15,9 @@ LEGACY_COURSES = {
     'avanzado': 'qa-avanzado',
     'certificacion': 'certificacion-requerimiento',
 }
+# Número de semanas o temas que tenía cada dirección antigua. Fuera de ese rango responde 404
+# aunque la ruta tenga más lecciones: las ampliaciones se abren solo en /rutas/<slug>/<n>/.
+LEGACY_LENGTHS = {'fundamentos': 6, 'avanzado': 11, 'certificacion': 6}
 
 
 def lesson_url(lesson):
@@ -82,6 +85,8 @@ def legacy_cover(request, course):
 
 def legacy_lesson(request, course, number):
     slug = LEGACY_COURSES[course]
+    if not 1 <= number <= LEGACY_LENGTHS[course]:
+        raise Http404
     if not Lesson.objects.filter(path__slug=slug, position=number).exists():
         raise Http404
     return redirect('lesson_detail', slug=slug, position=number, permanent=True)

@@ -1,0 +1,243 @@
+<ul>
+<li>Teoría:
+</li>
+</ul>
+<h2>Pruebas Funcionales (qué hace el sistema)</h2>
+<p class="test-types-intro">Los tipos son:</p>
+<h2>Pruebas de regresión</h2>
+<ul>
+<li>Definición: se ejecutan para verificar que nuevas funcionalidades, correcciones o cambios en el sistema no afecten negativamente las funciones ya existentes.
+</li>
+<li>Características:
+<ul>
+<li>Se aplican después de cada modificación del software.
+</li>
+<li>Suelen automatizarse para reducir tiempo y esfuerzo.
+</li>
+<li>Garantizan estabilidad y continuidad del sistema.
+</li>
+</ul>
+</li>
+<li>Ejemplo: tras añadir un nuevo módulo de pagos, se ejecutan pruebas de regresión para confirmar que el login, el carrito y la facturación siguen funcionando correctamente.
+</li>
+</ul>
+<h2>Pruebas de humo (smoke testing)</h2>
+<ul>
+<li>Definición: son pruebas rápidas y básicas que validan si las funciones críticas del sistema están operativas después de un despliegue o integración.
+</li>
+<li>Características:
+<ul>
+<li>Se enfocan en los flujos principales del sistema.
+</li>
+<li>Actúan como un “filtro inicial” antes de pruebas más profundas.
+</li>
+<li>Si fallan, se detiene el ciclo de pruebas para evitar pérdida de tiempo.
+</li>
+</ul>
+</li>
+<li>Ejemplo: comprobar que el sistema inicia sesión, carga la página principal y permite realizar una transacción básica tras una nueva versión.
+</li>
+</ul>
+<h2>Pruebas exploratorias</h2>
+<ul>
+<li>Definición: se realizan sin un guion predefinido, permitiendo al tester explorar libremente la aplicación para descubrir comportamientos inesperados.
+</li>
+<li>Características:
+<ul>
+<li>Se basan en la experiencia e intuición del tester.
+</li>
+<li>Útiles para detectar defectos que no están documentados en los casos de prueba.
+</li>
+<li>Complementan las pruebas estructuradas.
+</li>
+</ul>
+</li>
+<li>Ejemplo: un tester intenta cerrar sesión en medio de un proceso de compra para observar cómo responde el sistema.
+</li>
+</ul>
+<h2>Pruebas de aceptación del usuario (UAT – User Acceptance Testing)</h2>
+<ul>
+<li>Definición: son pruebas realizadas por el cliente o usuario final para confirmar que el sistema cumple con los requerimientos del negocio.
+</li>
+<li>Características:
+<ul>
+<li>Validan la conformidad del software frente a criterios de aceptación definidos.
+</li>
+<li>Son la última etapa antes de la puesta en producción.
+</li>
+<li>Aseguran que el producto es útil y satisfactorio para el usuario.
+</li>
+</ul>
+</li>
+<li>Ejemplo: un banco permite a empleados de prueba validar que el sistema de transferencias cumple con las reglas de negocio y es fácil de usar.
+</li>
+</ul>
+<h2>Pruebas No Funcionales (cómo lo hace el sistema)</h2>
+<p class="test-types-intro">Los tipos son:</p>
+<h2>Pruebas de Rendimiento (Performance Testing)</h2>
+<ul>
+<li>Definición: evalúan la rapidez, estabilidad y eficiencia del sistema bajo diferentes condiciones de uso.
+</li>
+<li>Objetivo: garantizar que el software responda dentro de tiempos aceptables y mantenga estabilidad.
+</li>
+<li>Ejemplo: medir el tiempo de respuesta de una API con 1,000 solicitudes concurrentes.
+</li>
+</ul>
+<h2>Pruebas de Carga (Load Testing)</h2>
+<ul>
+<li>Definición: simulan un número creciente de usuarios o transacciones para validar la capacidad del sistema.
+</li>
+<li>Objetivo: comprobar que el sistema soporta la carga esperada en condiciones normales.
+</li>
+<li>Ejemplo: validar que un portal de e-commerce soporte 10,000 usuarios durante una campaña de descuentos.
+</li>
+</ul>
+<h2>Pruebas de Estrés (Stress Testing)</h2>
+<ul>
+<li>Definición: llevan el sistema más allá de su capacidad máxima para identificar puntos de falla.
+</li>
+<li>Objetivo: evaluar la resistencia y recuperación del sistema en condiciones extremas.
+</li>
+<li>Ejemplo: incrementar usuarios hasta que el servidor colapse y analizar el tiempo de recuperación.
+</li>
+</ul>
+<h2>Pruebas de Escalabilidad (Scalability Testing)</h2>
+<ul>
+<li>Definición: verifican si el sistema puede crecer en recursos (hardware, instancias en la nube) sin perder rendimiento.
+</li>
+<li>Objetivo: comprobar que la arquitectura soporta expansión y balanceo de carga.
+</li>
+<li>Ejemplo: añadir nodos a un clúster y validar que el sistema distribuya correctamente las solicitudes.
+</li>
+</ul>
+<h2>Pruebas de Usabilidad (Usability Testing)</h2>
+<ul>
+<li>Definición: evalúan la facilidad de uso, accesibilidad y experiencia del usuario.
+</li>
+<li>Objetivo: asegurar que el sistema sea intuitivo y accesible para todos los perfiles.
+</li>
+<li>Ejemplo: verificar que un formulario pueda completarse con teclado y que cumpla con normas WCAG.
+</li>
+</ul>
+<h2>Pruebas de Seguridad (Security Testing)</h2>
+<ul>
+<li>Definición: buscan vulnerabilidades que puedan ser explotadas por atacantes.
+</li>
+<li>Objetivo: garantizar la protección de datos y la resistencia frente a ataques.
+</li>
+<li>Ejemplo: probar un login contra ataques de SQL Injection y XSS.
+</li>
+</ul>
+<h2>Pruebas de Fiabilidad y Resiliencia (Reliability Testing)</h2>
+<ul>
+<li>Definición: evalúan la capacidad del sistema para mantener un comportamiento estable y recuperarse de fallos.
+</li>
+<li>Objetivo: asegurar continuidad operativa y mínima pérdida de datos.
+</li>
+<li>Ejemplo: simular caída de red y validar que el sistema se recupere sin corrupción de información.
+</li>
+</ul>
+<h2>Pruebas de Compatibilidad (Compatibility Testing)</h2>
+<ul>
+<li>Definición: validan que el software funcione correctamente en distintos dispositivos, sistemas operativos y navegadores.
+</li>
+<li>Objetivo: garantizar una experiencia uniforme en entornos diversos.
+</li>
+<li>Ejemplo: comprobar que una aplicación web se visualice igual en Chrome, Safari y Firefox.
+</li>
+</ul>
+<h2>Pruebas de Mantenibilidad (Maintainability Testing)</h2>
+<ul>
+<li>Definición: evalúan la facilidad con la que el software puede ser corregido, actualizado o extendido.
+</li>
+<li>Objetivo: asegurar que el sistema sea sostenible a largo plazo.
+</li>
+<li>Ejemplo: medir el tiempo requerido para modificar un módulo y validar que los cambios no afecten otras áreas.
+</li>
+</ul>
+<h2>Pruebas de Recuperación (Recovery Testing)</h2>
+<ul>
+<li>Definición: verifican la capacidad del sistema para recuperarse tras fallos graves o desastres.
+</li>
+<li>Objetivo: garantizar que el sistema vuelva a un estado operativo sin pérdida significativa de datos.
+</li>
+<li>Ejemplo: simular un corte eléctrico y comprobar que la base de datos se restaure desde backups.
+</li>
+</ul>
+<h2 class="execution-strategies-heading">Estrategias de Ejecución</h2>
+<h2>Automatización</h2>
+<ul>
+<li>Definición: uso de herramientas y scripts para ejecutar pruebas de manera repetitiva y eficiente sin intervención manual.
+</li>
+<li>Ventajas:
+<ul>
+<li>Reduce tiempo y esfuerzo en pruebas de regresión y repetitivas.
+</li>
+<li>Mejora la cobertura y consistencia de resultados.
+</li>
+<li>Se integra en pipelines CI/CD para validación continua.
+</li>
+</ul>
+</li>
+<li>Ejemplo: automatizar el flujo de login y compra en un e-commerce con Selenium o Cypress.
+</li>
+</ul>
+<h2>Priorización basada en riesgo</h2>
+<ul>
+<li>Definición: estrategia que asigna prioridad a pruebas según el impacto y probabilidad de fallo en cada requerimiento.
+</li>
+<li>Beneficios:
+<ul>
+<li>Optimiza recursos al enfocarse en áreas críticas.
+</li>
+<li>Reduce riesgos de fallos en producción.
+</li>
+</ul>
+</li>
+<li>Ejemplo: en una aplicación bancaria, priorizar pruebas en transferencias y seguridad de datos antes que en funciones secundarias como personalización de perfil.
+</li>
+</ul>
+<h2>Cobertura de pruebas</h2>
+<ul>
+<li>Definición: medida del grado en que los requerimientos, casos de uso o líneas de código han sido validados por pruebas.
+</li>
+<li>Tipos de cobertura:
+<ul>
+<li>Funcional: porcentaje de requerimientos probados.
+</li>
+<li>Código: porcentaje de líneas o ramas ejecutadas durante pruebas.
+</li>
+<li>Escenarios de negocio: validación de flujos críticos definidos por el cliente.
+</li>
+</ul>
+</li>
+<li>Objetivo: asegurar que no existan áreas sin validar que puedan comprometer la certificación.
+</li>
+</ul>
+<h2>Evidencias</h2>
+<ul>
+<li>Definición: documentación y registros que respaldan la ejecución y resultados de las pruebas.
+</li>
+<li>Tipos de evidencias:
+<ul>
+<li>Capturas de pantalla.
+</li>
+<li>Logs de ejecución.
+</li>
+<li>Reportes de herramientas (JMeter, Postman, TestRail).
+</li>
+<li>Métricas de desempeño y defectos.
+</li>
+</ul>
+</li>
+<li>Importancia:
+<ul>
+<li>Proporcionan trazabilidad y transparencia en el proceso de certificación.
+</li>
+<li>Facilitan auditorías internas y externas.
+</li>
+</ul>
+</li>
+<li>Ejemplo: un reporte que muestre que el endpoint /api/orders respondió en menos de 2 segundos en el 95% de las pruebas.
+</li>
+</ul>

@@ -1,0 +1,20 @@
+{% extends 'pages/_section.html' %}
+{% block section %}
+{% for lesson in lessons %}
+<article class="panel lesson" id="lesson-{{ lesson.pk }}">
+  <span class="eyebrow">{{ lesson.path.title }} / LECCIÓN {{ lesson.position }}</span>
+  <h2><a href="{% url 'lesson_detail' lesson.path.slug lesson.position %}">{{ lesson.title }}</a></h2>
+  {% if lesson.body_html %}
+  <p class="lesson-body">{{ lesson.body|truncatewords:40 }}</p>
+  <p><a href="{% url 'lesson_detail' lesson.path.slug lesson.position %}">Abrir la lección →</a></p>
+  {% else %}
+  <p class="lesson-body">{{ lesson.body|linebreaksbr }}</p>
+  {% endif %}
+  {% if lesson.pk in done %}
+  <span class="pill green">✓ Lección completada</span>
+  {% else %}
+  <form method="post" action="/lesson/{{ lesson.pk }}/complete/">{% csrf_token %}<input type="hidden" name="next" value="/p/lessons/#lesson-{{ lesson.pk }}"><button class="btn-primary">Marcar como completada ✓</button></form>
+  {% endif %}
+</article>
+{% endfor %}
+{% endblock %}

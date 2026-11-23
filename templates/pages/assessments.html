@@ -1,0 +1,20 @@
+{% extends 'pages/_section.html' %}
+{% block subtitle %}Convierte lo que sabes en habilidades que puedes demostrar.{% endblock %}
+{% block section %}
+<section class="assessment-banner">
+  <span class="pill purple">CENTRO DE EVALUACIONES</span>
+  <h2>Haz visible tu conocimiento.</h2>
+  <p>Evalúa tus habilidades con escenarios reales de trabajo. Tus respuestas se guardan automáticamente.</p>
+</section>
+<div class="cards">
+  {% for a in assessments %}
+  <article class="panel exam-card">
+    <span class="pill purple">{{ a.area }}</span>
+    <div class="exam-symbol">◇</div>
+    <h2>{{ a.title }}</h2>
+    <p>{{ a.question_count }} preguntas · {{ a.minutes }} minutos<br>Aprobación: {{ a.pass_score }}% · Selección única</p>
+    <form method="post" action="/exam/{{ a.pk }}/start/">{% csrf_token %}<button class="btn-primary full">Iniciar / reanudar evaluación →</button></form>
+  </article>
+  {% endfor %}
+</div>
+{% endblock %}

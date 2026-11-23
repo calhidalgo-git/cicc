@@ -1,0 +1,10 @@
+{% extends 'pages/_section.html' %}
+{% block section %}
+<div class="panel">
+  <span class="pill teal">CONTINUIDAD OPERATIVA</span>
+  <h2>Respaldo del contenido</h2>
+  <p>Exporta recursos, versiones, rutas, progreso, preguntas, intentos y auditoría en JSON.</p>
+  <form method="post" action="/backup/">{% csrf_token %}<button class="btn-primary">↓ Crear respaldo de contenido</button></form>
+  <p>Este archivo no incluye archivos adjuntos, usuarios ni contraseñas. Para un respaldo completo utiliza pg_dump y copia private_storage; las instrucciones de restauración están en la documentación.</p>
+</div>
+{% endblock %}

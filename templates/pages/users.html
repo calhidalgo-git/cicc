@@ -1,0 +1,17 @@
+{% extends 'pages/_section.html' %}
+{% block section %}
+<div class="panel">
+  <div class="section-heading"><h2>Equipo de calidad</h2><a href="/admin/auth/user/">Crear y editar usuarios ↗</a></div>
+  <table>
+    <tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Estado</th></tr>
+    {% for u in users %}
+    <tr>
+      <td>{{ u.get_full_name }}</td>
+      <td>{{ u.username }}</td>
+      <td>{{ u.groups.all.0.name|default:'Administrador' }}</td>
+      <td>{% if u.is_active %}<span class="pill green">Activo</span>{% else %}Inactivo{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

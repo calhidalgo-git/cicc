@@ -486,3 +486,29 @@ La ficha prohíbe que el dashboard del participante consulte usuarios, grupos o 
 ### Observaciones
 - Una base que ya aplicó el T05 anterior con una ruta local llamada como un curso oficial tiene esa ruta mezclada con el curso. No se puede separar de forma automática. No hay indicios de que ocurra en la demo de Carlos: sus 6 rutas son las 3 de la demo y las 3 oficiales.
 - Si se edita el título de una lección oficial y después se revierte a 0003, al volver a migrar esa ruta se trata como local y `load_courses` crea el curso de nuevo. Lo indica el README: conviene hacer un respaldo antes de revertir.
+
+## T12 — Integración de las correcciones de T02 a T05 (22-11-2026)
+- Fecha: 2026-11-22
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T12-paginas-del-menu`, worktree `CICC-local\original\T12`. Merge de T05 `758c387`. Sin publicar.
+- Estado: En revisión
+
+### Qué se hizo
+- **Merge de T05** con las correcciones de T02 a T05, sin reescribir la historia.
+- **Conflicto en `hub/models.py`.** `LearningPath.save()` reserva los slugs oficiales (T05) y sanea con `clean_learning_path` (T12). Los receptores de restauración de T05 (`restore_learning_path`, `restore_lesson`) conviven con `sanitize_restored_html` de T12.
+- **Conflicto en `BITACORA.md`.** Se conservaron las entradas de ambos lados: la de T12 y, a continuación, las correcciones de T02 a T05.
+- **`PLAN.md`** se fusionó sin conflicto: T01 está `Hecha` y T12 sigue antes que T06 y T07 (decisión 3 de Carlos).
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 136 tests in 81.204s` · `OK`.
+- PostgreSQL 16 local (modo producción, clave aleatoria, base temporal `cicc_corr_t12` creada y borrada): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 136 tests in 89.829s` · `OK`.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `68 files already formatted`.
+- **Páginas de T12.** Se usó un worktree temporal con una copia del `demo.sqlite3` de esta carpeta. Su huella `2adcff98932634ed` no cambió.
+  - `migrate` no tenía nada que aplicar. `load_courses` y `load_pages` no crearon ni cambiaron nada.
+  - Las 26 secciones `/p/` respondieron 200 como `admin`, con 26 páginas de sección. El dashboard muestra «Contenido pendiente» y las tres áreas.
+  - Los tres recursos históricos abren su curso.
+  - `/qa/fundamentos/semana/6/` responde 301 y `/semana/7/` responde 404.
+  - La pantalla de acceso de la demo muestra la ayuda.
+
+### Preguntas para el arquitecto
+- Ninguna.

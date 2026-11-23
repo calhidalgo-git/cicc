@@ -57,6 +57,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     # Modo producción (sin CICC_DEMO). Todos los valores son ficticios y solo sirven para esta prueba.
+    # DJANGO_SECRET_KEY no se escribe aquí: se genera en cada ejecución (paso «Clave secreta efímera»).
     # POSTGRES_USER es superusuario del servicio, así que puede crear la base de pruebas.
     env:
       PGDATABASE: cicc
@@ -64,7 +65,6 @@ jobs:
       PGPASSWORD: cicc-ci-ficticia
       PGHOST: localhost
       PGPORT: '5432'
-      DJANGO_SECRET_KEY: clave-ficticia-solo-para-la-integracion-continua-0123456789
       CICC_ALLOWED_HOSTS: localhost,testserver
     steps:
       - uses: actions/checkout@v4
@@ -74,6 +74,12 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-dev.txt
       - run: pip install -r requirements-dev.txt
+      - name: Clave secreta efímera
+        # Aleatoria en cada ejecución, oculta en el registro y válida solo para este trabajo.
+        run: |
+          key=$(python -c "import secrets; print(secrets.token_urlsafe(64))")
+          echo "::add-mask::$key"
+          echo "DJANGO_SECRET_KEY=$key" >> "$GITHUB_ENV"
       - name: Comprobación de Django
         run: python manage.py check
       - name: Migraciones al día

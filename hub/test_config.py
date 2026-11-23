@@ -296,6 +296,22 @@ class SettingsByEnvironment(SimpleTestCase):
         self.assertNotIn(key, PUBLISHED_TEST_SECRETS)
         self.assertGreaterEqual(len(key), 50)
 
+    def test_ci_generates_the_secret_key_on_each_run(self):
+        workflow = (Path(settings.BASE_DIR) / '.github' / 'workflows' / 'ci.yml').read_text(
+            encoding='utf-8'
+        )
+        self.assertNotIn('DJANGO_SECRET_KEY:', workflow)
+        for key in PUBLISHED_TEST_SECRETS:
+            self.assertNotIn(key, workflow)
+        self.assertIn('secrets.token_urlsafe', workflow)
+        self.assertIn('DJANGO_SECRET_KEY=$key" >> "$GITHUB_ENV"', workflow)
+        self.assertIn('::add-mask::', workflow)
+
+    def test_readme_has_no_ci_badge_of_another_repository(self):
+        readme = (Path(settings.BASE_DIR) / 'README.md').read_text(encoding='utf-8')
+        self.assertNotIn('badge.svg', readme)
+        self.assertNotIn('github.com/', readme)
+
     def test_readme_does_not_publish_a_fixed_secret_key(self):
         readme = (Path(settings.BASE_DIR) / 'README.md').read_text(encoding='utf-8')
         self.assertNotIn("DJANGO_SECRET_KEY='", readme)

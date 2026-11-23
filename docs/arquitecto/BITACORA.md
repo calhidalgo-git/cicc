@@ -570,3 +570,43 @@ Hallazgos de `revision-codex-original-2.md`:
 
 ### Observaciones
 - `--relink` no distingue un recurso histórico desvinculado a propósito de uno que perdió el vínculo en la T05 anterior, porque ambos están vacíos. Por eso es una opción expresa y el README lo advierte.
+
+## T12 — Correcciones de la segunda revisión de Codex (22-11-2026)
+- Fecha: 2026-11-22
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T12-paginas-del-menu`, worktree `CICC-local\original\T12`. Merge de T05 `25b8ec8` y commit `262f93d`. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+- **Merge de T05** con las correcciones de la segunda revisión (copia local de un curso oficial, `load_courses --relink` y dirección oficial fija) y con las decisiones de Carlos del 22-11-2026 (T02, T03 y T04 `Hecha`; evidencia local en T03). En `hub/models.py`, el control nuevo del slug oficial quedó junto a `clean_learning_path()` de T12. En `BITACORA.md` se conservaron las entradas de ambos lados.
+- **Alta: respaldo con números internos de sección distintos.** Al revertir 0009 y volver a aplicarla, las secciones vacías se crean con otro número. Un JSON con esos números fallaba en una instalación recién migrada porque la misma sección ya existía con otro número.
+  - `SectionPage` tiene clave natural: `natural_key()` devuelve el slug y su gestor tiene `get_by_natural_key(slug)`. No hay cambio de esquema ni migración nueva.
+  - `/backup/` (`hub/views/management.py`) serializa `SectionPage` y `SectionBlock` con claves naturales. Las secciones van sin número interno y cada bloque apunta a su sección por el slug (`"page": ["environment"]`); el autor de la página, por el nombre de usuario. Los demás modelos conservan el formato anterior, así que los respaldos de T04 y T05 se restauran igual.
+  - Al restaurar, `loaddata` busca cada sección por su slug y actualiza la que existe, con el número de la instalación nueva. Los bloques llegan a su sección y el HTML se vuelve a sanear como antes. Restaurar el mismo respaldo dos veces no duplica nada.
+  - `README.md` lo explica. Un respaldo exportado con la versión anterior de T12 guarda los números internos y hay que volver a exportarlo.
+- **Prueba nueva** `test_section_pages.BackupRestoresBySectionSlug`:
+  - parte de la demo con teoría y bloques en dos secciones;
+  - revierte 0009 y la vuelve a aplicar, y comprueba que cambian números internos;
+  - exporta por `/backup/` y vacía el contenido;
+  - vuelve a crear las 26 secciones con números nuevos y restaura;
+  - compara la teoría, los bloques, el autor, los conteos de contenido, la página de la sección y la búsqueda;
+  - restaura de nuevo sin duplicados.
+  - Con el código anterior la prueba falla (`FAILED (failures=1)`): el JSON trae el número interno de cada sección.
+
+### Desviaciones respecto a la tarea
+- Ninguna. El formato del respaldo cambia solo en las dos tablas de T12.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 144 tests in 75.928s` · `OK`.
+- PostgreSQL 16 local (`Iniciar-PostgreSQL.ps1`; modo producción, clave aleatoria, base temporal `cicc_corr2_t12` creada y borrada): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 144 tests in 90.791s` · `OK`.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `68 files already formatted` (Ruff 0.17.6).
+- **Escenario de Codex con dos bases reales, en SQLite y en PostgreSQL**:
+  - *Origen:* `migrate`, `seed_demo` y teoría con dos bloques en `environment` (editada por admin). Después, `migrate hub 0008` y `migrate`: `dashboard` pasó del número 1 al 27, y `environment` siguió en el 3.
+  - *Exportación y destino:* se exportó con la vista `/backup/`, 126 objetos. El destino era una base nueva con `migrate` y las 8 cuentas y grupos del origen.
+  - *Con la corrección:* `loaddata` → `Installed 126 object(s) from 1 fixture(s)` en ambos motores. El destino conserva sus números (`dashboard` = 1), 26 secciones y los mismos 32 recursos, 6 rutas, 39 lecciones y 2 bloques. La teoría, el origen `admin` y el autor `admin` llegaron, más la entrada de auditoría de la exportación.
+  - *En la base SQLite restaurada:* el administrador abrió las 26 páginas con 200. `/p/environment/` muestra el bloque y la búsqueda de «ónice» lo encuentra.
+  - *Control con el código anterior (`f5e4b1b`, extraído con `git archive` a una carpeta temporal):* el mismo procedimiento falla como en la revisión. SQLite: `Could not load hub.SectionPage(pk=27): UNIQUE constraint failed: hub_sectionpage.slug`. PostgreSQL: `duplicate key value violates unique constraint "hub_sectionpage_slug_key"` · `Key (slug)=(dashboard) already exists.`. El destino queda sin contenido.
+  - Las bases temporales de PostgreSQL se borraron.
+
+### Preguntas para el arquitecto
+- Ninguna.

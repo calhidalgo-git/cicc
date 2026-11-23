@@ -6,7 +6,8 @@ from hub.services.courses import load_courses
 class Command(BaseCommand):
     help = (
         'Carga los cursos de hub/content/courses/ como rutas de aprendizaje. Crea las rutas y '
-        'lecciones que falten (por slug y posición) sin tocar lo existente, salvo con --force.'
+        'lecciones que falten (por slug y posición) sin tocar lo existente, salvo con --force. '
+        'Al crear un curso, o con --force, vincula los recursos que lo abrían antes de T05.'
     )
 
     def add_arguments(self, parser):
@@ -21,6 +22,6 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(
                 f'Rutas creadas: {summary["paths"]}; lecciones creadas: {summary["lessons"]}; '
-                f'reescritas: {summary["updated"]}'
+                f'reescritas: {summary["updated"]}; recursos vinculados: {summary["linked"]}'
             )
         )

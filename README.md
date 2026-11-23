@@ -1,6 +1,6 @@
 # CICC — Centro Integral de Control de Calidad
 
-[![CI](https://github.com/calhidalgo-git/CICC/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/calhidalgo-git/CICC/actions/workflows/ci.yml)
+**Integración continua:** `.github/workflows/ci.yml` revisa el estilo y ejecuta las pruebas en SQLite y en PostgreSQL. Este proyecto todavía no tiene un repositorio remoto aprobado, así que no muestra insignia de estado; los resultados de cada tarea se registran en `docs/arquitecto/BITACORA.md`.
 
 Ampliación del ZIP original, con 32 recursos, 16 lecciones y búsqueda global de recursos publicados, academia, rutas y evaluaciones. Incluye conocimiento del área, ambiente de certificación, mapa conceptual navegable, Mainframe, Distribuido, ciclo de vida y pruebas, QA/ClearQuest, procedimientos, incidentes y glosario. Todos los escenarios y accesos son ficticios.
 
@@ -57,6 +57,34 @@ No ejecutes `seed_demo` contra esta base: crea cuentas de demostración con una 
 | `QA_SQLITE` | Alias histórico: `1` usa SQLite sin relajar las demás reglas. |
 
 Credenciales ficticias: `admin`, `ana`, `diego`, `lucia`, todos con contraseña `DemoQA!2026`. admin administra; ana participa; diego edita contenido; lucia gestiona evaluaciones y consulta reportes. El comando seed es idempotente y conserva contraseñas existentes. Nunca ejecutes seed en producción.
+
+## Cursos: actualizar, restaurar y revertir
+
+Los tres cursos oficiales (`fundamentos-qa`, `qa-avanzado` y `certificacion-requerimiento`) vienen en `hub/content/courses/` y solo `load_courses` los crea. Su dirección está reservada: una ruta propia que se llame igual, por ejemplo «Fundamentos QA», recibe otra (`fundamentos-qa-2`) y conserva sus lecciones y su avance. El administrador no permite elegir una dirección reservada.
+
+**Actualizar desde una versión anterior a T05.** Haz primero un respaldo de la base. Después:
+
+```powershell
+python manage.py migrate
+python manage.py load_courses
+```
+
+`load_courses` crea los cursos que falten. Al crearlos, vincula con su curso los recursos que lo abrían antes, como «Guía de pruebas batch y JCL», «Checklist de pruebas de API REST» e «Introducción a DB2 para QA». Solo toca los recursos sin ruta asignada. Sin `--force` no modifica lo que ya existe.
+
+**Restaurar un respaldo JSON (`/backup/`).** Se admite el archivo de T04 y el de T05. Restaura en una base vacía de contenido: `migrate` y las cuentas, sin `seed_demo` ni `load_courses`. Después ejecuta `load_courses`:
+
+```powershell
+python manage.py migrate
+python manage.py loaddata cicc-content-backup.json
+python manage.py load_courses
+```
+
+El respaldo no incluye las cuentas: las personas que aparecen en el avance y en los intentos deben existir antes. Un respaldo de T04 no trae direcciones de ruta. Cada ruta recibe una propia, nunca la de un curso oficial. Si dos lecciones de una ruta comparten posición, la segunda pasa al final. Si el respaldo ocuparía un curso oficial que ya está en la base, `loaddata` se detiene sin aplicar nada.
+
+**Revertir las migraciones de cursos** (`migrate hub 0003`). Se conservan las rutas, las lecciones, el texto plano y el avance. Se pierden la dirección, la posición de la ruta, el HTML de introducciones y lecciones y el vínculo de los recursos con su curso. Al volver a migrar, los tres cursos recuperan su dirección si conservan su título y todas sus lecciones. Para recuperar el resto, elige una de estas opciones:
+
+- `python manage.py load_courses --force` repone el contenido distribuido y los vínculos de los recursos históricos. Sobrescribe las ediciones hechas a mano en esos cursos.
+- Para conservar esas ediciones, haz un respaldo JSON **antes** de revertir. Vuelve a migrar y restáuralo con `loaddata` **antes** de ejecutar `load_courses`.
 
 ## Qué puedes probar
 

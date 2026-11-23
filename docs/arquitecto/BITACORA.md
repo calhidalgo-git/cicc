@@ -350,3 +350,139 @@ Criterios de aceptación:
 - La búsqueda con texto quedó justo en el límite de 12 consultas. Una sección nueva que consulte más tendrá que optimizar.
 - Las tablas de respaldo guardan `updated_by` como id de usuario, igual que `Audit`, `Progress` y `Attempt`; restaurar en una base sin esos usuarios falla. Es de T10.
 - En una base que ya existía, el grupo Editor recibe el permiso nuevo al volver a ejecutar `seed_demo` (solo demo) o, más adelante, `bootstrap_roles` (T06).
+
+## T02 — Correcciones de la revisión de Codex (22-11-2026)
+- Fecha: 2026-11-22
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T02-configuracion-por-entorno`, worktree `CICC-local\original\T02`. Commit `53128a5`. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+Hallazgos de `revision-codex-original-22nov.md`, según el encargo de Carlos del 22-11-2026:
+- **Alta: claves publicadas.** `config/settings.py` rechaza en producción, además de las tres de antes:
+  - el ejemplo literal del README de T01 (`README.md:25`), `reemplazar-con-un-secreto-aleatorio`;
+  - la clave fija que usaban estas pruebas;
+  - la clave fija del flujo de CI de T03.
+- **Claves efímeras.** `hub/test_config.py` genera la clave de producción con `secrets.token_urlsafe(50)` en cada ejecución. El flujo de CI se corrige en T03.
+- **Pruebas nuevas.**
+  - El ejemplo histórico exacto se rechaza con PostgreSQL y con `QA_SQLITE=1`.
+  - Las dos claves fijas de pruebas y de CI se rechazan.
+  - Una clave publicada con espacios alrededor también se rechaza.
+  - La clave de las pruebas no es ninguna de las publicadas.
+- **Media: pantalla de acceso.** En `templates/login.html`, el bloque «Demostración: admin / …», las otras cuentas, «Solo datos ficticios» y «Credenciales exclusivas para uso local» solo aparecen con `cicc_demo`. Nuevas pruebas `LoginScreen`: `/login/` sin sesión en producción (200, sin la ayuda), con error de acceso y en modo demo (con la ayuda).
+- **T01 aprobada.** Por decisión expresa de Carlos (22-11-2026), T01 queda `Hecha` en `PLAN.md`.
+
+### Desviaciones respecto a la tarea
+- Ninguna nueva. La protección de `seed_demo` sigue siendo de T06.
+
+### Verificación
+Las cinco pruebas nuevas de claves y acceso fallan con la configuración y la plantilla anteriores (`FAILED (failures=5)`) y pasan con la corrección.
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 53 tests in 22.179s` · `OK`.
+- PostgreSQL 16 local (`Iniciar-PostgreSQL.ps1`, modo producción, clave aleatoria, base temporal `cicc_corr_t02` creada y borrada): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 53 tests in 22.476s` · `FAILED (failures=1)`. Falla solo `test_excel_and_backup`: es la falla previa del ID fijo de la plantilla Excel, anotada en la entrada original y corregida en T03.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `43 files already formatted`.
+
+### Preguntas para el arquitecto
+- Ninguna.
+
+## T03 — Correcciones de la revisión de Codex (22-11-2026)
+- Fecha: 2026-11-22
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T03-integracion-continua`, worktree `CICC-local\original\T03`. Merge de T02 `eccc860` y commit `5a757fa`. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+- **Merge de T02** con sus correcciones (claves publicadas y pantalla de acceso). En `BITACORA.md` se conservaron las entradas de ambos lados.
+- **Insignia.** Se retiró del `README.md` la insignia que apuntaba a `calhidalgo-git/CICC`. En su lugar, una línea explica que el flujo existe, que el proyecto aún no tiene un remoto aprobado y que la evidencia queda en la bitácora.
+- **Clave de CI.** `DJANGO_SECRET_KEY` ya no está escrita en `.github/workflows/ci.yml`. El paso «Clave secreta efímera» del trabajo `pruebas-postgres` la genera con `secrets.token_urlsafe(64)`, la oculta con `::add-mask::` y la exporta por `GITHUB_ENV`. La clave fija anterior queda rechazada en producción desde T02.
+- **Plantilla Excel.** Se conserva la corrección de `91e1462`. `test_excel_and_backup` y las dos pruebas de `hub/test_excel_template.py` pasan en PostgreSQL.
+- **Pruebas nuevas** en `hub/test_config.py`. El flujo no puede contener `DJANGO_SECRET_KEY:` ni las claves publicadas, y debe generarla. El README no enlaza insignias.
+
+### Verificación
+- El YAML se cargó con PyYAML (`uv run -p 3.12 --with pyyaml`, sin red). Tiene los trabajos `estilo`, `pruebas-sqlite` y `pruebas-postgres`. El de PostgreSQL ya no tiene `DJANGO_SECRET_KEY` en `env` y sí el paso nuevo antes de `check`. Las tres líneas del paso se ejecutaron en bash con un `GITHUB_ENV` temporal y dejaron una clave de 86 caracteres.
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 57 tests in 19.858s` · `OK`.
+- PostgreSQL 16 local (modo producción, clave aleatoria, base temporal `cicc_corr_t03` creada y borrada): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 57 tests in 20.412s` · `OK`.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `44 files already formatted`.
+- Sigue pendiente la ejecución en GitHub: el proyecto no tiene remoto. Queda a criterio de Carlos aceptar la evidencia local.
+
+### Preguntas para el arquitecto
+- Ninguna.
+
+## T04 — Correcciones de la revisión de Codex (22-11-2026)
+- Fecha: 2026-11-22
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T04-dividir-vistas-y-plantillas`, worktree `CICC-local\original\T04`. Merge de T03 `e6920c4` y commit `9a5cb18`. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+- **Merge de T03** con las correcciones de T02 y T03. En `BITACORA.md` se conservaron las entradas de ambos lados.
+- **Áreas del panel (decisión 2 de Carlos, 22-11-2026).** El contador cuenta las tres áreas con recursos publicados: Mainframe, Distribuido y Transversal. Se retira la desviación «Áreas de especialización sin Transversal» de la entrada original.
+  - `hub/views/pages.py` usa una sola consulta agrupada por área. Da el total de recursos y las áreas con publicados, en el orden de las opciones del modelo, así que no suma consultas.
+  - La línea bajo el número decía «Mainframe + Distribuido», un texto fijo. Ahora nombra las áreas contadas («Mainframe + Distribuido + Transversal» en la demo), para que no contradiga el número.
+  - `hub/tests/test_dashboard.py` espera 3 con la demo, 2 al despublicar Distribuido y 1 al despublicar también Transversal.
+
+### Excepción registrada: conteo de preguntas y datos de la sesión
+La ficha prohíbe que el dashboard del participante consulte usuarios, grupos o auditoría y que lea preguntas. Por eso queda escrita esta excepción, que ya existía en la implementación y en `hub/tests/test_queries.py` (`test_participant_dashboard_reads_only_its_own_data`):
+- **Preguntas.** Solo se cuentan con `COUNT("hub_question"."id")` dentro de la consulta de evaluaciones, para el número real del próximo desafío que exige el paso 6. Ninguna consulta hace `FROM "hub_question"` ni lee enunciados.
+- **Usuario y grupos.** Solo se leen el usuario de la sesión, sus grupos y sus permisos (filtrados por su id), que usan la autenticación y el menú lateral. Nunca se listan otros usuarios ni grupos.
+- **Auditoría.** No se consulta.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 70 tests in 33.271s` · `OK`.
+- PostgreSQL 16 local (modo producción, clave aleatoria, base temporal `cicc_corr_t04` creada y borrada): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 70 tests in 38.892s` · `OK`.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `58 files already formatted`.
+- `test_queries` pasa sin cambios: ninguna sección supera 12 consultas y el dashboard del participante cumple la excepción anterior.
+- Cambio visible: en el panel, «02» pasa a «03» y la línea bajo el número nombra las tres áreas. Falta que Carlos lo vea.
+
+### Preguntas para el arquitecto
+- Ninguna.
+
+## T05 — Correcciones de la revisión de Codex (22-11-2026)
+- Fecha: 2026-11-22
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T05-cursos-al-modelo`. El trabajo se hizo en el worktree `CICC-local\original\T05`, con HEAD separado, y la rama se adelantó desde la carpeta de Carlos con `merge --ff-only`. Merge de T04 `0b42cc3` y commit `130b628`. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+- **Merge de T04** con las correcciones de T02 a T04.
+  - En `hub/views/pages.py` se unieron el contador de 3 áreas y el orden y `select_related` de T05.
+  - En `BITACORA.md` se conservaron las entradas de ambos lados y la decisión de Carlos sobre D4 sigue dentro de la entrada de T05.
+- **Alta: identidad reservada de los tres cursos.** Los slugs `fundamentos-qa`, `qa-avanzado` y `certificacion-requerimiento`, leídos de `hub/content/courses/*/course.json`, solo los usa `load_courses`.
+  - `LearningPath.save()` da a una ruta nueva un slug no reservado: una ruta local «Fundamentos QA» queda en `fundamentos-qa-2`. También rechaza que otra ruta tome un slug reservado.
+  - `LearningPath.clean()` muestra el error en el administrador.
+  - La migración 0005 ya no asigna el slug oficial solo por el título. Lo hace únicamente si la ruta conserva el título y todas las lecciones del curso, con su posición y su título, que es lo que ocurre al volver a aplicarla tras revertir. Una ruta local con el mismo nombre recibe otro slug.
+  - Como no hay cambios de esquema, no hace falta una migración nueva. Las bases ya migradas no cambian.
+- **Media: vínculos históricos (veto de Carlos a D4).** Cada `course.json` lista en `legacy_resource_titles` los títulos que abrían ese curso en T04: los tres recursos históricos y las variantes que reconocía `resource()`.
+  - `load_courses` vincula esos recursos al crear el curso o con `--force`. Solo toca los recursos sin ruta asignada, así que respeta una ruta elegida en el administrador y nunca vincula con una ruta local.
+  - Una carga normal no deshace una desvinculación manual. El comando informa los recursos vinculados.
+- **Media: respaldo JSON de T04.** `loaddata` admite directamente el archivo de T04, mediante receptores `pre_save` con `raw`:
+  - la ruta sin slug recibe uno no reservado;
+  - una lección con la posición repetida pasa al final de su ruta;
+  - si una fila del respaldo ocuparía un curso oficial que ya existe, la restauración se detiene sin aplicar nada.
+  - Hay que restaurar en una base vacía de contenido y ejecutar después `load_courses`. Está documentado en `README.md`.
+- **Media: recuperación tras revertir.** Está documentada en `README.md`: qué se pierde al volver a 0003, cómo `load_courses --force` repone el contenido y los vínculos, y cómo un respaldo JSON hecho antes de revertir conserva las ediciones manuales.
+- **Baja: rangos históricos.** `/qa/fundamentos/semana/<n>/`, `/qa/avanzado/semana/<n>/` y `/qa/certificacion/tema/<n>/` responden 404 fuera de 1–6, 1–11 y 1–6, aunque la ruta tenga más lecciones. Las ampliaciones se abren en `/rutas/<slug>/<n>/`.
+- **Pruebas.**
+  - `hub/tests/test_course_identity.py` tiene 13 pruebas: identidad reservada, administrador, carga normal y `--force` con avance, vínculos, rangos antiguos y respaldo de T04 con varias rutas y avance, incluido el rechazo sin cambios.
+  - `hub/tests/test_migrations.py` agrega 3 pruebas de actualización real desde 0003.
+  - Con el código anterior, las pruebas nuevas dan `FAILED (failures=4, errors=1)`.
+
+### Desviaciones respecto a la tarea
+- **Cambio en una prueba existente.** En `test_existing_paths_lessons_and_progress_survive`, una ruta titulada «QA Avanzado y Especialización» y sin lecciones esperaba el slug `qa-avanzado`. Ahora espera `qa-avanzado-y-especializacion`: es una ruta local y el encargo pide que no tome la identidad del curso oficial. El resto de las aserciones no cambió.
+- **Migración 0005 modificada.** Solo cambia su lógica de datos. Las bases que ya la aplicaron no se ven afectadas.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 106 tests in 56.214s` · `OK`.
+- PostgreSQL 16 local (modo producción, clave aleatoria, base temporal `cicc_corr_t05` creada y borrada): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 106 tests in 65.266s` · `OK`.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `62 files already formatted`.
+- **Escenarios con datos reales** (copias en el directorio temporal; el `demo.sqlite3` de Carlos conservó su huella `333f4566e875e09a` antes y después):
+  1. **Actualización.** Base histórica de T01 (0003) con el código de T04, más una ruta local «Fundamentos QA», su lección «Mi lección local» completada y otro avance. `migrate` y `load_courses` dieron `Rutas creadas: 3; lecciones creadas: 23; reescritas: 0; recursos vinculados: 3`, con 7 rutas y 40 lecciones. La local quedó en `fundamentos-qa-2` con su lección y su avance, y la oficial en `fundamentos-qa` con 6. Los tres recursos históricos responden 200 y abren su ruta. Con `--force`, la ruta local y los avances no cambiaron.
+  2. **Respaldo de T04.** El JSON exportado por `/backup/` con T04 tenía 76 objetos. Se restauró con `loaddata` en una base T05 vacía de contenido, con las 4 cuentas: `Installed 76 object(s)`. Se restauraron todos los objetos por modelo, con los avances idénticos. Después, `load_courses` agregó los tres cursos y vinculó los tres recursos.
+  3. **Revertir.** En una copia de la demo de Carlos (0007: 6 rutas, 39 lecciones, 23 lecciones y 3 introducciones con HTML, 3 recursos vinculados) se ejecutó `migrate hub 0003` y luego `migrate`. Los tres cursos recuperaron su slug, sin duplicados, y el HTML y los vínculos quedaron en 0. `load_courses` sin `--force` no los repone. `load_courses --force` repuso 23 y 3 HTML y 3 vínculos.
+  4. **Recuperar ediciones.** Con una edición manual y un respaldo JSON de T05 hecho antes de revertir, el ciclo revertir, migrar y `loaddata` (`Installed 98 object(s)`) devolvió la edición, el HTML y los vínculos.
+
+### Preguntas para el arquitecto
+- Sigue abierta la de la entrada original: registrar en D4 el veto de Carlos.
+
+### Observaciones
+- Una base que ya aplicó el T05 anterior con una ruta local llamada como un curso oficial tiene esa ruta mezclada con el curso. No se puede separar de forma automática. No hay indicios de que ocurra en la demo de Carlos: sus 6 rutas son las 3 de la demo y las 3 oficiales.
+- Si se edita el título de una lección oficial y después se revierte a 0003, al volver a migrar esa ruta se trata como local y `load_courses` crea el curso de nuevo. Lo indica el README: conviene hacer un respaldo antes de revertir.

@@ -32,8 +32,14 @@ class RealValues(TestCase):
         response = self.dashboard()
         self.assertContains(response, f'{Lesson.objects.count()} lecciones · A tu ritmo')
         self.assertNotContains(response, '12 lecciones · A tu ritmo')
-        self.assertEqual(response.context['area_count'], 2)
+        # Se cuentan las tres áreas con recursos publicados (decisión de Carlos, 22-11-2026).
+        self.assertEqual(response.context['area_count'], 3)
+        self.assertContains(response, 'Mainframe + Distribuido + Transversal')
         Resource.objects.filter(area='Distribuido').update(published=False)
+        response = self.dashboard()
+        self.assertEqual(response.context['area_count'], 2)
+        self.assertContains(response, 'Mainframe + Transversal')
+        Resource.objects.filter(area='Transversal').update(published=False)
         self.assertEqual(self.dashboard().context['area_count'], 1)
 
     def test_next_challenge_is_the_first_assessment_not_passed(self):

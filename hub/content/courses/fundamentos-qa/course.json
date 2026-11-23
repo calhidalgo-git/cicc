@@ -4,6 +4,10 @@
   "description": "Una ruta progresiva para iniciarte en el aseguramiento de la calidad.",
   "position": 1,
   "area": "Transversal",
+  "legacy_resource_titles": [
+    "Guía de pruebas batch y JCL",
+    "Fundamentos QA"
+  ],
   "lessons": [
     {
       "position": 1,

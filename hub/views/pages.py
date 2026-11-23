@@ -27,12 +27,21 @@ from .common import ctx
 
 def dashboard(request, section):
     published = Resource.objects.filter(published=True)
-    # Total de recursos (publicados o no, como antes) y áreas de especialización con recursos
-    # publicados, sin Transversal, en una sola consulta.
-    totals = Resource.objects.aggregate(
-        total=Count('pk'),
-        areas=Count('area', distinct=True, filter=Q(published=True) & ~Q(area='Transversal')),
-    )
+    # Total de recursos (publicados o no, como antes) y áreas con recursos publicados, en una sola
+    # consulta agrupada por área. Se cuentan las tres áreas: Mainframe, Distribuido y Transversal
+    # (decisión de Carlos, 22-11-2026).
+    by_area = {
+        row['area']: row
+        for row in Resource.objects.values('area').annotate(
+            total=Count('pk'), published_total=Count('pk', filter=Q(published=True))
+        )
+    }
+    area_order = [value for value, _label in Resource._meta.get_field('area').choices]
+    areas = [
+        area
+        for area in area_order + sorted(set(by_area) - set(area_order))
+        if area in by_area and by_area[area]['published_total']
+    ]
     paths = list(
         LearningPath.objects.annotate(lesson_count=Count('lessons')).order_by('position', 'id')
     )
@@ -50,13 +59,14 @@ def dashboard(request, section):
     )
     return 'pages/dashboard.html', {
         'resources': published.select_related('learning_path'),
-        'resource_count': totals['total'],
+        'resource_count': sum(row['total'] for row in by_area.values()),
         'progress_count': Progress.objects.filter(user=request.user).count(),
         'assessment_count': len(assessments),
         # Toda lección pertenece a una ruta: el total sale de las rutas ya cargadas.
         'lesson_count': sum(path.lesson_count for path in paths),
-        # Áreas de especialización: las distintas de Transversal que tienen recursos publicados.
-        'area_count': totals['areas'],
+        # Áreas distintas con recursos publicados, incluida Transversal, y sus nombres.
+        'area_count': len(areas),
+        'area_names': areas,
         'recommended': recommended,
         'paths': paths,
         # La insignia del menú usa el mismo número, sin otra consulta.

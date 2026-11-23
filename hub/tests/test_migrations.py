@@ -1,8 +1,13 @@
 """Migraciones de T05 sobre una base con datos (rutas, lecciones con posición repetida y avance)."""
 
+from io import StringIO
+
+from django.core.management import call_command
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase
+
+from ..services.courses import read_courses
 
 BEFORE = [('hub', '0003_alter_resource_area')]
 AFTER = [('hub', '0006_unique_slug_and_lesson_position')]
@@ -28,6 +33,8 @@ class LearningPathMigrations(TransactionTestCase):
         user = User.objects.create(username='migracion')
         first = LearningPath.objects.create(title='Ruta Única', area='Transversal', description='d')
         twin = LearningPath.objects.create(title='Ruta única', area='Transversal', description='d')
+        # Una ruta con el nombre de un curso oficial pero sin sus lecciones es local: no recibe
+        # el slug reservado (revisión de Codex, 22-11-2026).
         course = LearningPath.objects.create(
             title='QA Avanzado y Especialización', area='Transversal', description='d'
         )
@@ -43,10 +50,116 @@ class LearningPathMigrations(TransactionTestCase):
         Progress = apps.get_model('hub', 'Progress')
         self.assertEqual(
             dict(LearningPath.objects.values_list('pk', 'slug')),
-            {first.pk: 'ruta-unica', twin.pk: 'ruta-unica-2', course.pk: 'qa-avanzado'},
+            {
+                first.pk: 'ruta-unica',
+                twin.pk: 'ruta-unica-2',
+                course.pk: 'qa-avanzado-y-especializacion',
+            },
         )
         ordered = Lesson.objects.filter(path_id=first.pk).order_by('position')
         self.assertEqual(list(ordered.values_list('pk', flat=True)), [a.pk, b.pk, c.pk])
         self.assertEqual(list(ordered.values_list('position', flat=True)), [1, 2, 3])
         self.assertEqual(Lesson.objects.count(), 4)
         self.assertTrue(Progress.objects.filter(user_id=user.pk, lesson_id=b.pk).exists())
+
+
+class UpdateKeepsLocalCoursesApart(TransactionTestCase):
+    """Actualización real desde 0003 (T04) hasta la última migración, más load_courses."""
+
+    def migrate(self, targets):
+        executor = MigrationExecutor(connection)
+        executor.loader.build_graph()
+        executor.migrate(targets)
+        return executor.loader.project_state(targets).apps
+
+    def latest(self):
+        executor = MigrationExecutor(connection)
+        return executor.loader.graph.leaf_nodes()
+
+    def tearDown(self):
+        self.migrate(self.latest())
+
+    def load(self, **options):
+        out = StringIO()
+        call_command('load_courses', stdout=out, **options)
+        return out.getvalue()
+
+    def test_local_course_named_like_an_official_one_keeps_its_content_and_progress(self):
+        apps = self.migrate(BEFORE)
+        User = apps.get_model('auth', 'User')
+        LearningPath = apps.get_model('hub', 'LearningPath')
+        Lesson = apps.get_model('hub', 'Lesson')
+        Progress = apps.get_model('hub', 'Progress')
+        user = User.objects.create(username='local')
+        local = LearningPath.objects.create(
+            title='Fundamentos QA', area='Transversal', description='Curso local'
+        )
+        own = Lesson.objects.create(path=local, title='Mi lección', body='Propia', position=1)
+        Progress.objects.create(user=user, lesson=own)
+
+        self.migrate(self.latest())
+        from ..models import LearningPath, Lesson, Progress
+
+        self.assertEqual(LearningPath.objects.get(pk=local.pk).slug, 'fundamentos-qa-2')
+        for options in ({}, {'force': True}):
+            self.load(**options)
+            path = LearningPath.objects.get(pk=local.pk)
+            self.assertEqual(path.slug, 'fundamentos-qa-2', options)
+            self.assertEqual(path.description, 'Curso local', options)
+            self.assertEqual(
+                list(path.lessons.values_list('pk', 'title', 'body')),
+                [(own.pk, 'Mi lección', 'Propia')],
+                options,
+            )
+            self.assertTrue(Progress.objects.filter(user_id=user.pk, lesson_id=own.pk).exists())
+            official = LearningPath.objects.get(slug='fundamentos-qa')
+            self.assertNotEqual(official.pk, local.pk)
+            self.assertEqual(Lesson.objects.filter(path=official).count(), 6, options)
+        self.assertEqual(Progress.objects.count(), 1)
+
+    def test_reapplying_after_a_revert_recognises_the_official_course(self):
+        course = next(c for c in read_courses() if c['slug'] == 'qa-avanzado')
+        apps = self.migrate(BEFORE)
+        LearningPath = apps.get_model('hub', 'LearningPath')
+        Lesson = apps.get_model('hub', 'Lesson')
+        # Así queda el curso oficial al revertir a 0003: mismo título y sus once lecciones,
+        # más una lección local que se le agregó.
+        official = LearningPath.objects.create(
+            title=course['title'], area='Transversal', description='d'
+        )
+        for item in course['lessons']:
+            Lesson.objects.create(
+                path=official, title=item['title'], body='b', position=item['position']
+            )
+        Lesson.objects.create(path=official, title='Agregada', body='b', position=12)
+        # Otra ruta con el mismo título, pero sin las lecciones del curso, es local.
+        twin = LearningPath.objects.create(
+            title=course['title'], area='Transversal', description='d'
+        )
+        Lesson.objects.create(path=twin, title='Semana 1 – Otra cosa', body='b', position=1)
+
+        apps = self.migrate(AFTER)
+        LearningPath = apps.get_model('hub', 'LearningPath')
+        self.assertEqual(LearningPath.objects.get(pk=official.pk).slug, 'qa-avanzado')
+        self.assertEqual(LearningPath.objects.get(pk=twin.pk).slug, 'qa-avanzado-y-especializacion')
+
+    def test_update_links_the_historical_resources_without_touching_local_ones(self):
+        apps = self.migrate(BEFORE)
+        Resource = apps.get_model('hub', 'Resource')
+        historical = Resource.objects.create(
+            title='Introducción a DB2 para QA', area='Mainframe', kind='Documento', description='d'
+        )
+        local = Resource.objects.create(
+            title='Recurso local', area='Distribuido', kind='Documento', description='d'
+        )
+
+        self.migrate(self.latest())
+        from ..models import Resource
+
+        output = self.load()
+        self.assertIn('recursos vinculados: 1', output)
+        self.assertEqual(
+            Resource.objects.get(pk=historical.pk).learning_path.slug,
+            'certificacion-requerimiento',
+        )
+        self.assertIsNone(Resource.objects.get(pk=local.pk).learning_path)

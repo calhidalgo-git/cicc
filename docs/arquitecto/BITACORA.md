@@ -145,3 +145,36 @@ Criterios de aceptación:
 - **ID fijo en la plantilla de importación.** La plantilla trae fija la evaluación con ID 1, y la prueba de Excel falla en PostgreSQL dentro de la suite. Bloqueará el trabajo de PostgreSQL de T03 si no se corrige. Lo natural es corregirlo en T03 (CI) o en T07 (Excel), con la aprobación de Carlos.
 - `seed_demo` usa la contraseña fija `DemoQA!2026`, y `START-DEMO.ps1` y el README la muestran. Es alcance de T06.
 - `ARQUITECTURA.md` y `CAMBIOS-CICC.md` mencionan `QA_SQLITE` y `DEBUG=0` como antes (T11).
+
+## T02 — Correcciones de la revisión de Codex (22-11-2026)
+- Fecha: 2026-11-22
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T02-configuracion-por-entorno`, worktree `CICC-local\original\T02`. Commit `53128a5`. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+Hallazgos de `revision-codex-original-22nov.md`, según el encargo de Carlos del 22-11-2026:
+- **Alta: claves publicadas.** `config/settings.py` rechaza en producción, además de las tres de antes:
+  - el ejemplo literal del README de T01 (`README.md:25`), `reemplazar-con-un-secreto-aleatorio`;
+  - la clave fija que usaban estas pruebas;
+  - la clave fija del flujo de CI de T03.
+- **Claves efímeras.** `hub/test_config.py` genera la clave de producción con `secrets.token_urlsafe(50)` en cada ejecución. El flujo de CI se corrige en T03.
+- **Pruebas nuevas.**
+  - El ejemplo histórico exacto se rechaza con PostgreSQL y con `QA_SQLITE=1`.
+  - Las dos claves fijas de pruebas y de CI se rechazan.
+  - Una clave publicada con espacios alrededor también se rechaza.
+  - La clave de las pruebas no es ninguna de las publicadas.
+- **Media: pantalla de acceso.** En `templates/login.html`, el bloque «Demostración: admin / …», las otras cuentas, «Solo datos ficticios» y «Credenciales exclusivas para uso local» solo aparecen con `cicc_demo`. Nuevas pruebas `LoginScreen`: `/login/` sin sesión en producción (200, sin la ayuda), con error de acceso y en modo demo (con la ayuda).
+- **T01 aprobada.** Por decisión expresa de Carlos (22-11-2026), T01 queda `Hecha` en `PLAN.md`.
+
+### Desviaciones respecto a la tarea
+- Ninguna nueva. La protección de `seed_demo` sigue siendo de T06.
+
+### Verificación
+Las cinco pruebas nuevas de claves y acceso fallan con la configuración y la plantilla anteriores (`FAILED (failures=5)`) y pasan con la corrección.
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 53 tests in 22.179s` · `OK`.
+- PostgreSQL 16 local (`Iniciar-PostgreSQL.ps1`, modo producción, clave aleatoria, base temporal `cicc_corr_t02` creada y borrada): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 53 tests in 22.476s` · `FAILED (failures=1)`. Falla solo `test_excel_and_backup`: es la falla previa del ID fijo de la plantilla Excel, anotada en la entrada original y corregida en T03.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `43 files already formatted`.
+
+### Preguntas para el arquitecto
+- Ninguna.

@@ -121,6 +121,74 @@ class ReservedIdentity(SeededBase):
         self.assertEqual(LearningPath.objects.filter(title='Fundamentos QA').count(), 1)
 
 
+class OfficialAddressIsFixed(SeededBase):
+    """La dirección de un curso oficial no cambia (revisión de Codex, 22-11-2026)."""
+
+    def edit_form(self, path, **changes):
+        data = {
+            'title': path.title,
+            'slug': path.slug,
+            'area': path.area,
+            'description': path.description,
+            'intro_html': path.intro_html,
+            'position': path.position,
+            'lessons-TOTAL_FORMS': 0,
+            'lessons-INITIAL_FORMS': 0,
+            'lessons-MIN_NUM_FORMS': 0,
+            'lessons-MAX_NUM_FORMS': 1000,
+        }
+        data.update(changes)
+        return data
+
+    def test_the_model_rejects_a_new_slug_for_an_official_course(self):
+        course = LearningPath.objects.get(slug='fundamentos-qa')
+        course.slug = 'otra-direccion'
+        with self.assertRaises(ValidationError) as caught:
+            course.full_clean()
+        self.assertIn('slug', caught.exception.message_dict)
+        with self.assertRaises(ValidationError):
+            course.save()
+        self.assertEqual(LearningPath.objects.get(pk=course.pk).slug, 'fundamentos-qa')
+
+    def test_admin_edit_form_keeps_the_official_address(self):
+        course = LearningPath.objects.get(slug='fundamentos-qa')
+        lessons = course.lessons.count()
+        Progress.objects.create(user=self.ana(), lesson=course.lessons.first())
+        self.assertTrue(self.client.login(username='admin', password=PASSWORD))
+        url = f'/admin/hub/learningpath/{course.pk}/change/'
+
+        page = self.client.get(url)
+        self.assertEqual(page.status_code, 200)
+        self.assertNotContains(page, 'name="slug"')
+        self.assertContains(page, 'fundamentos-qa')
+
+        response = self.client.post(
+            url, self.edit_form(course, slug='otra-direccion', description='Editada')
+        )
+        self.assertEqual(response.status_code, 302)
+        course.refresh_from_db()
+        self.assertEqual(course.slug, 'fundamentos-qa')
+        self.assertEqual(course.description, 'Editada')
+
+        self.assertIn('Rutas creadas: 0', load())
+        self.assertEqual(LearningPath.objects.filter(title='Fundamentos QA').count(), 1)
+        self.assertEqual(course.lessons.count(), lessons)
+        self.client.login(username='ana', password=PASSWORD)
+        response = self.client.get('/rutas/fundamentos-qa/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['done_count'], 1)
+
+    def test_a_local_path_can_still_change_its_address(self):
+        local = LearningPath.objects.create(title='Ruta local', area='Transversal', description='d')
+        self.assertTrue(self.client.login(username='admin', password=PASSWORD))
+        url = f'/admin/hub/learningpath/{local.pk}/change/'
+        self.assertContains(self.client.get(url), 'name="slug"')
+        response = self.client.post(url, self.edit_form(local, slug='mi-ruta'))
+        self.assertEqual(response.status_code, 302)
+        local.refresh_from_db()
+        self.assertEqual(local.slug, 'mi-ruta')
+
+
 class HistoricalResources(SeededBase):
     HISTORICAL = {
         'Guía de pruebas batch y JCL': 'fundamentos-qa',
@@ -181,6 +249,49 @@ class HistoricalResources(SeededBase):
         load(force=True)
         resource.refresh_from_db()
         self.assertEqual(resource.learning_path.slug, 'certificacion-requerimiento')
+
+    def test_relink_repairs_only_the_empty_links_of_an_earlier_t05(self):
+        """Instalación con la T05 anterior (beec6b6): cursos cargados, recursos sin vínculo."""
+        Resource.objects.filter(title__in=self.HISTORICAL).update(learning_path=None)
+        local_path = LearningPath.objects.create(
+            title='Ruta local', area='Transversal', description='d'
+        )
+        chosen = Resource.objects.get(title='Checklist de pruebas de API REST')
+        chosen.learning_path = local_path
+        chosen.save()
+        course = LearningPath.objects.get(slug='fundamentos-qa')
+        course.description = 'Editada a mano'
+        course.save()
+        lesson = course.lessons.get(position=2)
+        lesson.title = 'Mi título'
+        lesson.body_html = '<p>Mi texto</p>'
+        lesson.save()
+        # La carga normal no repara esos vínculos (el curso ya existía).
+        self.assertIn('recursos vinculados: 0', load())
+        # Una lección oficial borrada a propósito: --relink no la vuelve a crear.
+        Lesson.objects.filter(path=course, position=6).delete()
+        counts = (LearningPath.objects.count(), Lesson.objects.count())
+
+        output = load(relink=True)
+        self.assertIn('Rutas creadas: 0; lecciones creadas: 0; reescritas: 0', output)
+        self.assertIn('recursos vinculados: 2', output)
+        expected = dict(self.HISTORICAL)
+        expected[chosen.title] = 'ruta-local'
+        self.assertEqual(self.linked(), expected)
+        self.assertEqual((LearningPath.objects.count(), Lesson.objects.count()), counts)
+        course.refresh_from_db()
+        lesson.refresh_from_db()
+        self.assertEqual(course.description, 'Editada a mano')
+        self.assertEqual((lesson.title, lesson.body_html), ('Mi título', '<p>Mi texto</p>'))
+        self.assertFalse(course.lessons.filter(position=6).exists())
+        # Repetirla no cambia nada.
+        self.assertIn('recursos vinculados: 0', load(relink=True))
+
+    def test_relink_and_force_cannot_be_combined(self):
+        from django.core.management.base import CommandError
+
+        with self.assertRaises(CommandError):
+            call_command('load_courses', '--relink', '--force', stdout=StringIO())
 
     def test_every_course_lists_its_historical_titles(self):
         for course in read_courses():

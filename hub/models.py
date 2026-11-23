@@ -107,8 +107,18 @@ class LearningPath(models.Model):
             return False
         return self.slug in official_course_slugs() and self.stored_slug() != self.slug
 
+    def leaves_official_slug(self):
+        """True si un curso oficial guardado cambiaría de slug (revisión de Codex, 22-11-2026).
+
+        La dirección oficial dejaría de responder y load_courses crearía un segundo curso.
+        """
+        stored = self.stored_slug()
+        return stored in official_course_slugs() and self.slug != stored
+
     def clean(self):
         super().clean()
+        if self.leaves_official_slug():
+            raise ValidationError({'slug': 'La dirección de un curso oficial no se puede cambiar.'})
         if self.slug and self.takes_official_slug():
             raise ValidationError(
                 {
@@ -118,6 +128,10 @@ class LearningPath(models.Model):
             )
 
     def save(self, *args, **kwargs):
+        if self.leaves_official_slug():
+            raise ValidationError(
+                f'La ruta {self.pk} es un curso oficial: su slug no se puede cambiar.'
+            )
         if not self.slug:
             self.slug = unique_slug(
                 LearningPath, self.title, exclude_pk=self.pk, reserved=official_course_slugs()

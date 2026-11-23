@@ -3,10 +3,16 @@
 Va sola porque PostgreSQL no permite cambiar el esquema de una tabla con datos recién modificados
 en la misma transacción. Revertirla no deshace nada: la 0004 elimina los slugs al revertirse.
 
-Los slugs de los tres cursos oficiales están reservados. Una ruta solo recibe uno de ellos si es
-ese curso, cargado antes por load_courses (la migración se repite tras revertirla): mismo título y
-todas sus lecciones, con la misma posición y el mismo título. Una ruta local con el mismo nombre
-recibe otro slug y queda separada, con su contenido y su avance.
+Los slugs de los tres cursos oficiales están reservados. Antes de T05 los cursos no estaban en la
+base, así que una ruta solo puede ser oficial si es ese curso, cargado antes por load_courses (la
+migración se repite tras revertirla). Como al revertir se pierde el slug, la ruta se reconoce solo
+si conserva todo lo que load_courses --force reescribiría: el título, el área y la descripción del
+curso, y cada una de sus lecciones con la misma posición, el mismo título y el mismo texto.
+
+Una ruta local que copie el nombre, los títulos o el orden del curso, pero no su contenido, no se
+puede distinguir por esos datos: recibe otro slug y queda separada, con su texto y su avance
+(revisión de Codex, 22-11-2026). Si una ruta sí coincide en todo, tomarla por oficial no cambia
+nada de lo que contiene.
 """
 
 import json
@@ -19,13 +25,38 @@ COURSES_DIR = Path(__file__).resolve().parent.parent / 'content' / 'courses'
 
 
 def official_courses():
-    """Título del curso → (slug, conjunto de (posición, título) de sus lecciones)."""
+    """Título del curso → datos que lo identifican tras una reversión."""
+    from hub.services.courses import html_to_text, sanitize_html
+
     courses = {}
     for definition in sorted(COURSES_DIR.glob('*/course.json')):
         data = json.loads(definition.read_text(encoding='utf-8'))
-        lessons = {(item['position'], item['title']) for item in data['lessons']}
-        courses[data['title']] = (data['slug'], lessons)
+        lessons = {}
+        for item in data['lessons']:
+            body_html = (definition.parent / item['file']).read_text(encoding='utf-8')
+            # Lesson.save() guarda en «body» el texto plano del HTML saneado.
+            lessons[item['position']] = (item['title'], html_to_text(sanitize_html(body_html)))
+        courses[data['title']] = {
+            'slug': data['slug'],
+            'area': data['area'],
+            'description': data['description'],
+            'lessons': lessons,
+        }
     return courses
+
+
+def is_official_course(path, course, Lesson):
+    """True solo si la ruta conserva exactamente el contenido oficial del curso."""
+    if path.area != course['area'] or path.description != course['description']:
+        return False
+    # Antes de T05 la posición podía repetirse: se comparan todas las lecciones de esas posiciones.
+    own = sorted(
+        Lesson.objects.filter(path=path, position__in=course['lessons']).values_list(
+            'position', 'title', 'body'
+        )
+    )
+    expected = sorted((position, *data) for position, data in course['lessons'].items())
+    return own == expected
 
 
 def assign_slugs(apps, schema_editor):
@@ -33,17 +64,19 @@ def assign_slugs(apps, schema_editor):
     Lesson = apps.get_model('hub', 'Lesson')
     official = official_courses()
     # Ninguna ruta local puede recibir un slug oficial, ni siquiera con sufijo de otra.
-    used = {slug for slug, _lessons in official.values()}
+    used = {course['slug'] for course in official.values()}
     claimed = set()
     for path in LearningPath.objects.order_by('pk'):
-        slug, lessons = official.get(path.title, (None, None))
-        if slug and slug not in claimed:
-            own = set(Lesson.objects.filter(path=path).values_list('position', 'title'))
-            if lessons <= own:
-                claimed.add(slug)
-                path.slug = slug
-                path.save(update_fields=['slug'])
-                continue
+        course = official.get(path.title)
+        if (
+            course
+            and course['slug'] not in claimed
+            and is_official_course(path, course, Lesson)
+        ):
+            claimed.add(course['slug'])
+            path.slug = course['slug']
+            path.save(update_fields=['slug'])
+            continue
         base = slugify(path.title)[:190] or 'ruta'
         candidate, number = base, 2
         while candidate in used:
@@ -66,7 +99,6 @@ def renumber_repeated_positions(apps, schema_editor):
         for number, lesson in enumerate(lessons, 1):
             lesson.position = number
             lesson.save(update_fields=['position'])
-
 
 
 class Migration(migrations.Migration):

@@ -14,6 +14,7 @@ from .models import (
     SectionBlock,
     SectionPage,
 )
+from .services.courses import official_slugs
 
 
 class LessonInline(admin.StackedInline):
@@ -28,6 +29,22 @@ class LearningPathAdmin(admin.ModelAdmin):
     list_display = ('title', 'slug', 'area', 'position')
     prepopulated_fields = {'slug': ('title',)}
     inlines = [LessonInline]
+
+    @staticmethod
+    def is_official(obj):
+        return obj is not None and obj.stored_slug() in official_slugs()
+
+    def get_readonly_fields(self, request, obj=None):
+        """La dirección de un curso oficial no se edita (revisión de Codex, 22-11-2026)."""
+        fields = super().get_readonly_fields(request, obj)
+        if self.is_official(obj):
+            return (*fields, 'slug')
+        return fields
+
+    def get_prepopulated_fields(self, request, obj=None):
+        if self.is_official(obj):
+            return {}
+        return super().get_prepopulated_fields(request, obj)
 
 
 EDIT_PERMISSION = 'hub.change_sectionpage'

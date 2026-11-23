@@ -11,7 +11,7 @@ Las tareas se ejecutan en orden. Una tarea puede empezar solo cuando todas sus d
 | [T03](tareas/T03-integracion-continua.md) | Integración continua | T02 | S | Hecha |
 | [T04](tareas/T04-dividir-vistas-y-plantillas.md) | Dividir vistas y plantillas | T03 | L | Hecha |
 | [T05](tareas/T05-cursos-al-modelo.md) | Cursos al modelo de datos | T04 | L | En revisión |
-| [T06](tareas/T06-roles-y-permisos.md) | Roles, permisos y administrador | T04 | M | Pendiente |
+| [T06](tareas/T06-roles-y-permisos.md) | Roles, permisos y administrador | T04 | M | En revisión |
 | [T07](tareas/T07-evaluaciones-robustas.md) | Evaluaciones robustas | T04 | L | Pendiente |
 | [T08](tareas/T08-seguridad-de-acceso.md) | Seguridad de acceso | T02, T06 | M | Pendiente |
 | [T09](tareas/T09-despliegue-servidor-interno.md) | Despliegue en servidor interno | T02, T07 | M | Pendiente |
@@ -20,6 +20,8 @@ Las tareas se ejecutan en orden. Una tarea puede empezar solo cuando todas sus d
 | [T12](tareas/T12-paginas-del-menu.md) | Una página con teoría para cada opción del menú | T05 | M | En revisión |
 
 T12 la pidió Carlos el 22-11-2026 y va antes que T06 y T07, que quedan en espera hasta que termine.
+
+El 23-11-2026 Carlos decidió empezar T06 mientras revisa T05 y T12. T06 se construye encima de T12. No puede haber más de dos tareas sin aprobar a la vez: la siguiente tarea empieza cuando Carlos aprueba la más antigua de las que están en revisión.
 
 **Decisiones de Carlos (22-11-2026).** Aprobó de forma expresa T02, T03 y T04, que pasan a `Hecha`. En T03 aceptó la evidencia local, es decir, las pruebas ejecutadas en su PC, en lugar de los tres trabajos en verde en un pull request de GitHub, porque el proyecto no tiene remoto.
 

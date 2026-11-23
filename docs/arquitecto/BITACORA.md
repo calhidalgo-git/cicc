@@ -610,3 +610,57 @@ Hallazgos de `revision-codex-original-2.md`:
 
 ### Preguntas para el arquitecto
 - Ninguna.
+
+## Decisiones de Carlos — 23-11-2026
+- **`main` avanza hasta T04.** Carlos aprobó fusionar T01 a T04 en `main`, solo en local. Como cada tarea salía de la anterior, `main` avanzó de `ea61b75` a `1eb7c72` sin commits de fusión. No se hizo `push`.
+- **T06 empieza antes de que T05 y T12 estén aprobadas.** Se construye encima de T12, que ya tiene T05, porque las tres agregan migraciones y T12 decide qué rol ve cada página del menú. Si la revisión de T05 o T12 pide cambios, se llevan a T06.
+- **Como máximo dos tareas sin aprobar a la vez.** T07 empieza cuando Carlos apruebe T05 y T12; T08, cuando apruebe T06; y así hasta T10. T11 espera a todas.
+
+## T06 — Roles, permisos y administrador
+- Fecha: 2026-11-23
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T06-roles-y-permisos`, creada desde `tarea/T12-paginas-del-menu` (`d8f3ca0`) por decisión de Carlos, en `CICC-local\original\T06`. Commit de código `0fb8817`. Sin publicar.
+- Estado: En revisión
+
+### Qué se hizo
+- **Permisos nuevos** (`hub/models.py`, migración `0010`): `view_reports` en `Attempt` («Puede ver reportes globales») y `export_backup` en `Audit` («Puede exportar el respaldo de contenido»). Índice `hub_audit_created_idx` sobre `Audit.created`.
+- **Migración de datos `0011`**: crea los dos permisos, porque Django solo los crea al terminar `migrate`. Da `view_reports` a todo grupo con `view_audit` y `export_backup` al grupo `Administrador` si existe. Al revertir, quita los dos permisos de todos los grupos.
+- **`GATES` y vistas** (`hub/permissions.py`, `hub/views/management.py`): `reports` y `/report.xlsx` → `hub.view_reports`; `audit` → `hub.view_audit`; `backups` y `/backup/` → `hub.export_backup`.
+- **`bootstrap_roles`** (`hub/services/roles.py`, `hub/management/commands/bootstrap_roles.py`): crea o actualiza los cuatro grupos con la matriz de la tarea. No crea usuarios ni toca otros grupos. Si falta un permiso, termina con un error que pide ejecutar `migrate`.
+- **`seed_demo`**: sin `CICC_DEMO` lanza `CommandError` antes de escribir nada. Usa `bootstrap_roles` para los roles; el resto no cambió.
+- **Administrador** (`hub/admin.py`):
+  - `Resource` tiene columnas, filtros, búsqueda y versiones en línea.
+  - `Assessment` tiene preguntas en línea, y `Question` tiene su propia pantalla. El formulario de Django ejecuta `Question.clean()` al validar.
+  - `Attempt`, `Audit` y `Progress` son de solo lectura: no se agregan ni se cambian, y solo un superusuario los borra. Tienen columnas, filtro y jerarquía por fecha y búsqueda por usuario.
+- **README**: `bootstrap_roles` en la instalación con PostgreSQL, tabla de roles y cómo actualizar desde una versión anterior a T06.
+- **Pruebas**: `hub/tests/test_roles.py` tiene 15 pruebas: la matriz, la separación de permisos, `bootstrap_roles`, `seed_demo` fuera de la demo, la instalación sin cuentas demo, el administrador y la migración de datos con su reversión.
+
+### Desviaciones respecto a la tarea
+- **El Editor conserva `view_sectionpage` y `change_sectionpage`.** La matriz de la tarea es anterior a T12, que dio esos permisos al Editor para escribir la teoría de las páginas del menú. Sin ellos, Diego pierde «Editar contenido» y fallan las pruebas de T12. Ver la pregunta para el arquitecto.
+- **Dos pruebas más cambian por el mismo comportamiento autorizado.** Además de `test_excel_and_backup`, `ALLOWED_BY_ROLE` de `test_pages.py` y de `test_queries.py` quita `backups` a `lucia`: es el mismo cambio, el Evaluador recibe 403 en Respaldos.
+- **Ayudante `hub/tests/demo.py`.** Las pruebas en PostgreSQL corren en modo producción, donde `seed_demo` ahora se niega. Las diez llamadas a `call_command('seed_demo')` de las pruebas pasan por un ayudante que activa `CICC_DEMO` solo mientras se cargan los datos. Ninguna aserción cambió.
+- **El Administrador ya no tiene todos los permisos de la base.** Antes `seed_demo` le daba también los de `admin`, `contenttypes` y `sessions`. Ahora tiene solo los de `hub` y `auth`, como pide la tarea. En la copia de la demo pasa de 62 a 58 permisos. `admin` es superusuario y no lo nota.
+- **`Progress` tampoco se borra salvo superusuario.** La tarea dice «solo lectura», y se usó la misma regla que en `Attempt` y `Audit`.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 159 tests in 90.528s` · `OK`.
+- PostgreSQL 16 local (`Iniciar-PostgreSQL.ps1`; modo producción, clave aleatoria, base de pruebas temporal): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 159 tests in 110.711s` · `OK`.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `71 files already formatted`.
+- Con el código de T12, las pruebas ajustadas dan `FAILED (failures=2)` (`test_excel_and_backup` y `test_status_codes_by_role`). `test_roles.py` no carga con el código anterior, porque `hub.services.roles` no existe.
+- **Criterios de aceptación, a mano, en PostgreSQL** (base temporal `cicc_t06_manual`, creada y borrada; sin `CICC_DEMO`):
+  - `migrate` y luego `seed_demo` → `CommandError: seed_demo crea cuentas con contraseña conocida y solo se ejecuta en el modo de demostración (CICC_DEMO=1)…`. Después había 0 usuarios, 0 grupos y 0 recursos.
+  - `bootstrap_roles` → `Roles creados: Participante, Editor, Evaluador, Administrador; actualizados: ninguno.` La segunda vez → `Roles creados: ninguno; actualizados: …`.
+  - `createsuperuser --noinput` creó un único usuario, `responsable`. Inició sesión y abrió `/p/dashboard/`, `/p/reports/`, `/p/audit/`, `/p/backups/` y `/admin/hub/audit/` con 200. `POST /backup/` → 200.
+- **Copia de la demo de Carlos** (`demo.sqlite3` en 0007; el original conservó su huella `333f4566e875e09a`):
+  - Antes: Administrador y Evaluador con `view_audit`.
+  - `migrate` aplicó de 0008 a 0011. El Evaluador quedó con `view_audit` y `view_reports`, y el Administrador recibió además `export_backup`.
+  - `lucia`: reportes 200, auditoría 200, respaldo 403. `admin`: 200 en los tres. `ana`: 403 en los tres.
+  - Después, `seed_demo` dejó al Editor con 14 permisos, al Evaluador con 8 y al Administrador con 58.
+
+### Preguntas para el arquitecto
+- ¿Se agregan `view_sectionpage` y `change_sectionpage` del Editor a la matriz de T06 y a D11? Se conservaron por T12.
+- Sigue abierta la de T05: registrar en D4 el veto de Carlos.
+
+### Observaciones
+- `ResourceVersion` y `Lesson` siguen registrados sin configuración, como antes, porque la tarea no los menciona. También se editan en línea desde `Resource` y `LearningPath`.
+- Un Evaluador ve `Audit` en el administrador, solo para leer, porque tiene `view_audit`. No ve `Attempt`, porque no tiene `view_attempt`; los intentos los consulta en Reportes.

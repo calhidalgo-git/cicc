@@ -1,6 +1,7 @@
 """Pruebas de la configuración por entorno (config/env.py y config/settings.py)."""
 
 import os
+import secrets
 import subprocess
 import sys
 import tempfile
@@ -18,8 +19,18 @@ from config.env import env_bool, env_list, env_required, load_env_file
 CONFIG_PREFIXES = ('CICC_', 'DJANGO_', 'PG', 'EMAIL_')
 CONFIG_NAMES = {'DEBUG', 'QA_SQLITE', 'SHOW_DEMO_CREDENTIALS', 'DEFAULT_FROM_EMAIL', 'SITE_URL'}
 
+# Claves ya publicadas en el repositorio (README de T01, pruebas de T02 y flujo de CI de T03).
+# Producción debe rechazarlas todas.
+HISTORICAL_README_SECRET = 'reemplazar-con-un-secreto-aleatorio'
+PUBLISHED_TEST_SECRETS = (
+    'clave-ficticia-de-prueba-' + 'x' * 40,
+    'clave-ficticia-solo-para-la-integracion-continua-0123456789',
+)
+
+# La clave de producción de las pruebas se genera en cada ejecución: no queda escrita en ningún
+# lugar, así que nadie puede copiarla para arrancar una instalación real.
 PRODUCTION = {
-    'DJANGO_SECRET_KEY': 'clave-ficticia-de-prueba-' + 'x' * 40,
+    'DJANGO_SECRET_KEY': secrets.token_urlsafe(50),
     'CICC_ALLOWED_HOSTS': 'cicc.ejemplo.local',
     'PGDATABASE': 'cicc',
     'PGUSER': 'cicc_app',
@@ -254,6 +265,37 @@ class SettingsByEnvironment(SimpleTestCase):
             self.assertIn('DJANGO_SECRET_KEY', result.stderr, extra)
             self.assertIn('clave de desarrollo o de ejemplo', result.stderr, extra)
 
+    def test_production_rejects_the_exact_example_of_the_old_readme(self):
+        # Valor literal que publicaba el README hasta T01 (README.md, línea 25).
+        env = dict(PRODUCTION, DJANGO_SECRET_KEY=HISTORICAL_README_SECRET)
+        for extra in ({}, {'QA_SQLITE': '1'}):
+            result = self.run_python(RUN_CHECK, **env, **extra)
+            self.assertNotEqual(result.returncode, 0, extra)
+            self.assertIn('DJANGO_SECRET_KEY', result.stderr, extra)
+            self.assertIn('clave de desarrollo o de ejemplo', result.stderr, extra)
+
+    def test_production_rejects_the_fixed_keys_of_tests_and_ci(self):
+        for key in PUBLISHED_TEST_SECRETS:
+            env = dict(PRODUCTION, DJANGO_SECRET_KEY=key)
+            for extra in ({}, {'QA_SQLITE': '1'}):
+                result = self.run_python(RUN_CHECK, **env, **extra)
+                self.assertNotEqual(result.returncode, 0, (key, extra))
+                self.assertIn('clave de desarrollo o de ejemplo', result.stderr, (key, extra))
+
+    def test_production_rejects_published_keys_with_surrounding_spaces(self):
+        env = dict(PRODUCTION, DJANGO_SECRET_KEY=f'  {HISTORICAL_README_SECRET}  ')
+        result = self.run_python(RUN_CHECK, **env)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('clave de desarrollo o de ejemplo', result.stderr)
+
+    def test_the_test_secret_key_is_generated_on_each_run(self):
+        from config import settings as config_settings
+
+        key = PRODUCTION['DJANGO_SECRET_KEY']
+        self.assertNotIn(key, config_settings._PUBLIC_SECRETS)
+        self.assertNotIn(key, PUBLISHED_TEST_SECRETS)
+        self.assertGreaterEqual(len(key), 50)
+
     def test_readme_does_not_publish_a_fixed_secret_key(self):
         readme = (Path(settings.BASE_DIR) / 'README.md').read_text(encoding='utf-8')
         self.assertNotIn("DJANGO_SECRET_KEY='", readme)
@@ -357,3 +399,37 @@ class DemoLabels(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, 'ENTORNO DEMO')
         self.assertNotContains(response, 'Datos ficticios')
+
+
+class LoginScreen(TestCase):
+    """Pantalla de acceso sin sesión: la ayuda de la demo solo aparece con CICC_DEMO."""
+
+    DEMO_HELP = (
+        'Demostración:',
+        'DemoQA!2026',
+        'ana, diego o lucia',
+        'Solo datos ficticios',
+        'Credenciales exclusivas para uso local',
+    )
+
+    @override_settings(CICC_DEMO=False)
+    def test_production_login_hides_demo_accounts_and_password(self):
+        response = self.client.get('/login/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Ingresar a CICC')
+        for text in self.DEMO_HELP:
+            self.assertNotContains(response, text)
+
+    @override_settings(CICC_DEMO=False)
+    def test_production_login_with_error_still_hides_demo_help(self):
+        response = self.client.post('/login/', {'username': 'nadie', 'password': 'incorrecta'})
+        self.assertContains(response, 'Usuario o contraseña incorrectos.')
+        for text in self.DEMO_HELP:
+            self.assertNotContains(response, text)
+
+    @override_settings(CICC_DEMO=True)
+    def test_demo_login_shows_demo_accounts(self):
+        response = self.client.get('/login/')
+        self.assertEqual(response.status_code, 200)
+        for text in self.DEMO_HELP:
+            self.assertContains(response, text)

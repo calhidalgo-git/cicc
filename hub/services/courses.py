@@ -80,16 +80,29 @@ def official_slugs():
     return frozenset(course['slug'] for course in read_courses())
 
 
-def link_legacy_resources(path, titles):
+def link_legacy_resources(path, titles, summary):
     """Vincula con su curso los recursos que lo abrían antes de T05 (veto de Carlos a D4).
 
     Solo toca los recursos sin ruta asignada: no cambia una ruta elegida en el administrador.
+    El recurso se reconoce por su título. Si hay más de un recurso con ese título, no se puede
+    saber cuál es el histórico: no se toca ninguno y el título queda en ``summary['ambiguous']``
+    para que se elija en el administrador (tercera revisión de Codex, 23-11-2026).
     """
     from hub.models import Resource
 
-    return Resource.objects.filter(title__in=titles, learning_path__isnull=True).update(
-        learning_path=path
-    )
+    for title in titles:
+        resources = list(Resource.objects.filter(title=title))
+        if len(resources) > 1:
+            summary['ambiguous'].append(title)
+            continue
+        if resources and resources[0].learning_path_id is None:
+            resources[0].learning_path = path
+            resources[0].save(update_fields=['learning_path'])
+            summary['linked'] += 1
+
+
+def empty_summary():
+    return {'paths': 0, 'lessons': 0, 'updated': 0, 'linked': 0, 'ambiguous': []}
 
 
 @transaction.atomic
@@ -102,13 +115,11 @@ def relink_legacy_resources():
     """
     from hub.models import LearningPath
 
-    summary = {'paths': 0, 'lessons': 0, 'updated': 0, 'linked': 0}
+    summary = empty_summary()
     for course in read_courses():
         path = LearningPath.objects.filter(slug=course['slug']).first()
         if path is not None:
-            summary['linked'] += link_legacy_resources(
-                path, course.get('legacy_resource_titles', [])
-            )
+            link_legacy_resources(path, course.get('legacy_resource_titles', []), summary)
     return summary
 
 
@@ -123,7 +134,7 @@ def load_courses(force=False):
     """
     from hub.models import LearningPath, Lesson
 
-    summary = {'paths': 0, 'lessons': 0, 'updated': 0, 'linked': 0}
+    summary = empty_summary()
     for course in read_courses():
         fields = {
             'title': course['title'],
@@ -145,9 +156,7 @@ def load_courses(force=False):
             path.save()
             summary['updated'] += 1
         if created or force:
-            summary['linked'] += link_legacy_resources(
-                path, course.get('legacy_resource_titles', [])
-            )
+            link_legacy_resources(path, course.get('legacy_resource_titles', []), summary)
         existing = {lesson.position: lesson for lesson in path.lessons.all()}
         for item in course['lessons']:
             body = (course['dir'] / item['file']).read_text(encoding='utf-8')

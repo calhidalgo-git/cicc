@@ -13,6 +13,14 @@ Una ruta local que copie el nombre, los títulos o el orden del curso, pero no s
 puede distinguir por esos datos: recibe otro slug y queda separada, con su texto y su avance
 (revisión de Codex, 22-11-2026). Si una ruta sí coincide en todo, tomarla por oficial no cambia
 nada de lo que contiene.
+
+Tercera revisión de Codex (23-11-2026):
+- Cada posición del curso debe tener una sola lección, la oficial. Las lecciones propias solo se
+  admiten después de la última lección oficial: ahí conservan su número y load_courses --force no
+  las toca. Una lección propia antes, por ejemplo en la posición 0, o una posición repetida,
+  cambiaría los números al renumerar y --force la reescribiría con el texto oficial.
+- Si dos rutas cumplen la regla, no se puede saber cuál es el curso: todas quedan locales y
+  load_courses crea el curso aparte. Así un respaldo hecho antes de revertir se puede restaurar.
 """
 
 import json
@@ -46,15 +54,16 @@ def official_courses():
 
 
 def is_official_course(path, course, Lesson):
-    """True solo si la ruta conserva exactamente el contenido oficial del curso."""
+    """True si la ruta conserva el contenido oficial y no tiene lecciones propias que, al
+    renumerar o al cargar con --force, cambien de número o de texto."""
     if path.area != course['area'] or path.description != course['description']:
         return False
-    # Antes de T05 la posición podía repetirse: se comparan todas las lecciones de esas posiciones.
-    own = sorted(
-        Lesson.objects.filter(path=path, position__in=course['lessons']).values_list(
-            'position', 'title', 'body'
-        )
-    )
+    lessons = list(Lesson.objects.filter(path=path).values_list('position', 'title', 'body'))
+    positions = [position for position, _, _ in lessons]
+    if len(positions) != len(set(positions)):
+        return False
+    last = max(course['lessons'])
+    own = sorted(lesson for lesson in lessons if lesson[0] <= last)
     expected = sorted((position, *data) for position, data in course['lessons'].items())
     return own == expected
 
@@ -63,18 +72,18 @@ def assign_slugs(apps, schema_editor):
     LearningPath = apps.get_model('hub', 'LearningPath')
     Lesson = apps.get_model('hub', 'Lesson')
     official = official_courses()
-    # Ninguna ruta local puede recibir un slug oficial, ni siquiera con sufijo de otra.
-    used = {course['slug'] for course in official.values()}
-    claimed = set()
+    candidates = {}
     for path in LearningPath.objects.order_by('pk'):
         course = official.get(path.title)
-        if (
-            course
-            and course['slug'] not in claimed
-            and is_official_course(path, course, Lesson)
-        ):
-            claimed.add(course['slug'])
-            path.slug = course['slug']
+        if course and is_official_course(path, course, Lesson):
+            candidates.setdefault(course['slug'], []).append(path.pk)
+    # Solo recibe el slug oficial la única ruta que cumple la regla; con dos o más, ninguna.
+    official_pk = {pks[0]: slug for slug, pks in candidates.items() if len(pks) == 1}
+    # Ninguna ruta local puede recibir un slug oficial, ni siquiera con sufijo de otra.
+    used = {course['slug'] for course in official.values()}
+    for path in LearningPath.objects.order_by('pk'):
+        if path.pk in official_pk:
+            path.slug = official_pk[path.pk]
             path.save(update_fields=['slug'])
             continue
         base = slugify(path.title)[:190] or 'ruta'

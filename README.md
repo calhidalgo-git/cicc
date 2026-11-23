@@ -83,7 +83,7 @@ python manage.py migrate
 python manage.py load_courses
 ```
 
-`load_courses` crea los cursos que falten. Al crearlos, vincula con su curso los recursos que lo abrían antes, como «Guía de pruebas batch y JCL», «Checklist de pruebas de API REST» e «Introducción a DB2 para QA». Solo toca los recursos sin ruta asignada. Sin `--force` no modifica lo que ya existe.
+`load_courses` crea los cursos que falten. Al crearlos, vincula con su curso los recursos que lo abrían antes, como «Guía de pruebas batch y JCL», «Checklist de pruebas de API REST» e «Introducción a DB2 para QA». Solo toca los recursos sin ruta asignada. Si hay dos o más recursos con uno de esos títulos, no vincula ninguno y avisa: elige en el administrador cuál abre el curso. Sin `--force` no modifica lo que ya existe.
 
 **Si ya aplicaste la T05 anterior** y los tres recursos históricos quedaron sin abrir su curso, ejecuta:
 
@@ -101,11 +101,15 @@ python manage.py loaddata cicc-content-backup.json
 python manage.py load_courses
 ```
 
-El respaldo no incluye las cuentas: las personas que aparecen en el avance y en los intentos deben existir antes. Un respaldo de T04 no trae direcciones de ruta. Cada ruta recibe una propia, nunca la de un curso oficial. Si dos lecciones de una ruta comparten posición, la segunda pasa al final. Si el respaldo ocuparía un curso oficial que ya está en la base, `loaddata` se detiene sin aplicar nada.
+El respaldo no incluye las cuentas: las personas que aparecen en el avance, los intentos y la auditoría deben existir antes, con el mismo nombre de usuario. El respaldo las guarda por ese nombre, no por su número interno, así que no importa en qué orden se crearon; si falta una, `loaddata` se detiene sin aplicar nada. Un respaldo exportado antes del 23-11-2026 guarda los números internos: solo se restaura bien si las cuentas tienen los mismos números que en el origen. Vuelve a exportarlo. Un respaldo de T04 no trae direcciones de ruta. Cada ruta recibe una propia, nunca la de un curso oficial. Si dos lecciones de una ruta comparten posición, la segunda pasa al final. Si el respaldo ocuparía un curso oficial que ya está en la base, `loaddata` se detiene sin aplicar nada.
 
+<<<<<<< HEAD
 Las páginas de sección del menú se guardan en el respaldo por su clave (`dashboard`, `glossary`, …) y no por su número interno. La teoría y sus bloques llegan a la sección con esa clave, aunque la instalación nueva la haya creado con otro número, por ejemplo después de revertir y volver a aplicar la migración 0009. Restaurar el mismo respaldo dos veces no duplica secciones ni bloques. Un respaldo exportado con la versión anterior de T12 guarda los números internos y puede fallar en otra instalación: vuelve a exportarlo.
 
 **Revertir las migraciones de cursos** (`migrate hub 0003`). Se conservan las rutas, las lecciones, el texto plano y el avance. Se pierden la dirección, la posición de la ruta, el HTML de introducciones y lecciones y el vínculo de los recursos con su curso. Al volver a migrar, un curso recupera su dirección oficial solo si conserva exactamente su contenido: título, área, descripción y, en cada lección del curso, la posición, el título y el texto. Cualquier otra ruta, aunque copie el nombre, los títulos o el orden del curso, queda como ruta propia con otra dirección, su texto y su avance; `load_courses` crea entonces el curso oficial aparte. Esto incluye un curso oficial editado a mano. Para recuperar el resto, elige una de estas opciones:
+=======
+**Revertir las migraciones de cursos** (`migrate hub 0003`). Se conservan las rutas, las lecciones, el texto plano y el avance. Se pierden la dirección, la posición de la ruta, el HTML de introducciones y lecciones y el vínculo de los recursos con su curso. Al volver a migrar, un curso recupera su dirección oficial solo si conserva exactamente su contenido: título, área, descripción y, en cada posición del curso, una sola lección con el título y el texto oficiales. Se admiten lecciones propias después de la última lección oficial, pero no antes ni en una posición repetida. Cualquier otra ruta, aunque copie el nombre, los títulos o el orden del curso, queda como ruta propia con otra dirección, su texto y su avance; `load_courses` crea entonces el curso oficial aparte. Esto incluye un curso oficial editado a mano. Si dos rutas cumplen estas condiciones, no se puede saber cuál es la oficial: todas quedan como rutas propias, `load_courses` crea el curso aparte y el avance sigue en la ruta propia. Para devolverlo al curso, restaura el respaldo hecho antes de revertir. Para recuperar el resto, elige una de estas opciones:
+>>>>>>> tarea/T05-cursos-al-modelo
 
 - `python manage.py load_courses --force` repone el contenido distribuido y los vínculos de los recursos históricos. Solo reescribe las rutas con dirección oficial, que tras volver a migrar son las que no tenían ediciones.
 - Para conservar esas ediciones, haz un respaldo JSON **antes** de revertir. Vuelve a migrar y restáuralo con `loaddata` **antes** de ejecutar `load_courses`.

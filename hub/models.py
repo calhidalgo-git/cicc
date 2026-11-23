@@ -78,6 +78,38 @@ def official_course_slugs():
     return official_slugs()
 
 
+class LearningPathQuerySet(models.QuerySet):
+    """Las operaciones en lote tampoco cambian ni toman el slug de un curso oficial.
+
+    ``save()`` y ``clean()`` ya lo impiden en cada ruta; ``update()`` y ``bulk_update()`` no
+    pasan por ellos (tercera revisión de Codex, 23-11-2026).
+    """
+
+    def update(self, **kwargs):
+        if 'slug' in kwargs:
+            official = official_course_slugs()
+            new = kwargs['slug']
+            others = self.exclude(slug=new)
+            if others.filter(slug__in=official).exists():
+                raise ValidationError('La dirección de un curso oficial no se puede cambiar.')
+            if new in official and others.exists():
+                raise ValidationError(
+                    f'El slug {new!r} está reservado para un curso oficial; '
+                    'solo load_courses puede usarlo.'
+                )
+        return super().update(**kwargs)
+
+    def bulk_update(self, objs, fields, *args, **kwargs):
+        if 'slug' in fields:
+            for obj in objs:
+                if obj.leaves_official_slug() or obj.takes_official_slug():
+                    raise ValidationError(
+                        f'La ruta {obj.pk}: la dirección de un curso oficial no se puede cambiar '
+                        'ni usar en otra ruta.'
+                    )
+        return super().bulk_update(objs, fields, *args, **kwargs)
+
+
 class LearningPath(models.Model):
     title = models.CharField(max_length=200)
     slug = models.SlugField(max_length=200, unique=True)
@@ -88,6 +120,8 @@ class LearningPath(models.Model):
         help_text='Introducción en HTML. Se limita a las etiquetas permitidas al guardar.',
     )
     position = models.IntegerField(default=0)
+
+    objects = LearningPathQuerySet.as_manager()
 
     class Meta:
         ordering = ['position', 'id']

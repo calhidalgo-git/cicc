@@ -93,6 +93,26 @@ def link_legacy_resources(path, titles):
 
 
 @transaction.atomic
+def relink_legacy_resources():
+    """Solo vuelve a vincular los recursos históricos sin ruta con su curso oficial.
+
+    Es para las instalaciones que ya aplicaron la T05 anterior (``beec6b6``), donde los cursos
+    existen pero los tres recursos quedaron sin vínculo (revisión de Codex, 22-11-2026). No crea
+    ni reescribe rutas ni lecciones, y no cambia un recurso que ya abre alguna ruta.
+    """
+    from hub.models import LearningPath
+
+    summary = {'paths': 0, 'lessons': 0, 'updated': 0, 'linked': 0}
+    for course in read_courses():
+        path = LearningPath.objects.filter(slug=course['slug']).first()
+        if path is not None:
+            summary['linked'] += link_legacy_resources(
+                path, course.get('legacy_resource_titles', [])
+            )
+    return summary
+
+
+@transaction.atomic
 def load_courses(force=False):
     """Crea las rutas y lecciones que falten; con ``force`` también reescribe las existentes.
 

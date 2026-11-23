@@ -2,6 +2,8 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 from django.utils.text import slugify
 
 
@@ -84,11 +86,9 @@ class LearningPath(models.Model):
         ordering = ['position', 'id']
 
     def save(self, *args, **kwargs):
-        from .services.courses import sanitize_html
-
         if not self.slug:
             self.slug = unique_slug(LearningPath, self.title, exclude_pk=self.pk)
-        self.intro_html = sanitize_html(self.intro_html)
+        clean_learning_path(self)
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -113,11 +113,7 @@ class Lesson(models.Model):
         ]
 
     def save(self, *args, **kwargs):
-        from .services.courses import html_to_text, sanitize_html
-
-        self.body_html = sanitize_html(self.body_html)
-        if self.body_html:
-            self.body = html_to_text(self.body_html)
+        clean_lesson(self)
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -178,3 +174,122 @@ class Audit(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
     action = models.CharField(max_length=200)
     created = models.DateTimeField(auto_now_add=True)
+
+
+class SectionPage(models.Model):
+    """Teoría de una opción del menú (una fila por slug de NAV). Se muestra arriba de la sección."""
+
+    ORIGIN_CHOICES = [
+        ('', 'Sin contenido'),
+        ('file', 'Cargado desde archivo'),
+        ('admin', 'Editado en el administrador'),
+    ]
+
+    slug = models.SlugField(max_length=50, unique=True, verbose_name='sección')
+    title = models.CharField(max_length=200, verbose_name='título')
+    intro_html = models.TextField(
+        blank=True,
+        verbose_name='introducción',
+        help_text='Introducción en HTML. Se limita a las etiquetas permitidas al guardar.',
+    )
+    intro = models.TextField(
+        blank=True, editable=False, help_text='Texto plano de la introducción, para la búsqueda.'
+    )
+    origin = models.CharField(
+        max_length=10, blank=True, choices=ORIGIN_CHOICES, editable=False, verbose_name='origen'
+    )
+    source_hash = models.CharField(max_length=64, blank=True, editable=False)
+    updated = models.DateTimeField(auto_now=True, verbose_name='actualizada')
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        editable=False,
+        related_name='+',
+        verbose_name='actualizada por',
+    )
+
+    class Meta:
+        ordering = ['id']
+        verbose_name = 'página de sección'
+        verbose_name_plural = 'páginas de sección'
+
+    def save(self, *args, **kwargs):
+        clean_section_page(self)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title
+
+
+class SectionBlock(models.Model):
+    """Bloque de teoría de una página de sección, en el orden de ``position``."""
+
+    page = models.ForeignKey(SectionPage, on_delete=models.CASCADE, related_name='blocks')
+    title = models.CharField(max_length=200, verbose_name='título')
+    body_html = models.TextField(
+        blank=True,
+        verbose_name='contenido',
+        help_text='Contenido en HTML. Se limita a las etiquetas permitidas al guardar.',
+    )
+    body = models.TextField(
+        blank=True, editable=False, help_text='Texto plano del contenido, para la búsqueda.'
+    )
+    position = models.PositiveIntegerField(default=1, verbose_name='posición')
+
+    class Meta:
+        ordering = ['position', 'id']
+        verbose_name = 'bloque de teoría'
+        verbose_name_plural = 'bloques de teoría'
+
+    def save(self, *args, **kwargs):
+        clean_section_block(self)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title
+
+
+def clean_section_page(page):
+    from .services.courses import html_to_text, sanitize_html
+
+    page.intro_html = sanitize_html(page.intro_html)
+    page.intro = html_to_text(page.intro_html)
+
+
+def clean_section_block(block):
+    from .services.courses import html_to_text, sanitize_html
+
+    block.body_html = sanitize_html(block.body_html)
+    block.body = html_to_text(block.body_html)
+
+
+def clean_learning_path(path):
+    from .services.courses import sanitize_html
+
+    path.intro_html = sanitize_html(path.intro_html)
+
+
+def clean_lesson(lesson):
+    from .services.courses import html_to_text, sanitize_html
+
+    lesson.body_html = sanitize_html(lesson.body_html)
+    if lesson.body_html:
+        lesson.body = html_to_text(lesson.body_html)
+
+
+RAW_CLEANERS = {
+    SectionPage: clean_section_page,
+    SectionBlock: clean_section_block,
+    LearningPath: clean_learning_path,
+    Lesson: clean_lesson,
+}
+
+
+@receiver(pre_save)
+def sanitize_restored_html(sender, instance, raw=False, **kwargs):
+    """Al restaurar un respaldo con loaddata, save() no se llama: el HTML se sanea aquí."""
+    cleaner = RAW_CLEANERS.get(sender)
+    if raw and cleaner:
+        cleaner(instance)

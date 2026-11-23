@@ -24,6 +24,9 @@ class Command(BaseCommand):
                 'view_lesson',
                 'add_lesson',
                 'change_lesson',
+                # T12: teoría de las páginas del menú (bloques incluidos).
+                'view_sectionpage',
+                'change_sectionpage',
             ],
             'Evaluador': [
                 'view_question',
@@ -213,6 +216,10 @@ class Command(BaseCommand):
         from hub.services.courses import load_courses
 
         load_courses()
+        # Una página de teoría por opción del menú (lo mismo que el comando load_pages).
+        from hub.services.pages import load_pages
+
+        load_pages()
         # Estos recursos abren su curso desde la biblioteca, como en la versión anterior.
         for title, slug in [
             ('Guía de pruebas batch y JCL', 'fundamentos-qa'),

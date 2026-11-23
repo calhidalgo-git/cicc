@@ -363,6 +363,10 @@ Las cinco pruebas nuevas de claves y acceso fallan con la configuración y la pl
 ### Preguntas para el arquitecto
 - Ninguna.
 
+### Decisión de Carlos
+- 22-11-2026: Carlos acepta la evidencia local (las pruebas ejecutadas en su PC) en lugar de los tres trabajos en verde en el pull request de GitHub, porque el proyecto no tiene remoto. Con esto se da por cumplido ese criterio de aceptación.
+- 22-11-2026: Carlos aprobó T03, que pasa a `Hecha`.
+
 ## T04 — Correcciones de la revisión de Codex (22-11-2026)
 - Fecha: 2026-11-22
 - Modelo / herramienta: Claude Opus 5.5 (Claude Code)
@@ -442,3 +446,57 @@ La ficha prohíbe que el dashboard del participante consulte usuarios, grupos o 
 ### Observaciones
 - Una base que ya aplicó el T05 anterior con una ruta local llamada como un curso oficial tiene esa ruta mezclada con el curso. No se puede separar de forma automática. No hay indicios de que ocurra en la demo de Carlos: sus 6 rutas son las 3 de la demo y las 3 oficiales.
 - Si se edita el título de una lección oficial y después se revierte a 0003, al volver a migrar esa ruta se trata como local y `load_courses` crea el curso de nuevo. Lo indica el README: conviene hacer un respaldo antes de revertir.
+
+## Decisiones de Carlos — 22-11-2026
+- **T02, T03 y T04 aprobadas.** Carlos las aprobó de forma expresa tras la segunda revisión de Codex (`revision-codex-original-2.md`). Pasan a `Hecha` en `PLAN.md`. Carlos escribió «T02, T02 y T04»: la segunda «T02» se entiende como T03, que era la que esperaba su aprobación.
+- **T03: evidencia local.** Carlos acepta las pruebas ejecutadas en su PC en lugar de los tres trabajos en verde en un pull request de GitHub, porque el proyecto no tiene remoto. Queda anotado también en la entrada de T03.
+- El código de T02, T03 y T04 no cambió. Estas notas se llevan a las ramas T05 y T12.
+
+## T05 — Correcciones de la segunda revisión de Codex (22-11-2026)
+- Fecha: 2026-11-22
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T05-cursos-al-modelo`, en la carpeta de Carlos. Commit de código `5ca5f83`. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+Hallazgos de `revision-codex-original-2.md`:
+- **Alta: una copia local de un curso oficial se confundía con él.** La migración 0005 reconocía el curso por el título y por los títulos y posiciones de sus lecciones. Una ruta local con esos mismos datos, pero con sus propios textos, tomaba el slug oficial y `load_courses --force` borraba sus textos.
+  - Ahora una ruta recupera el slug oficial solo si conserva todo lo que `load_courses --force` reescribiría: título, área y descripción del curso, y en cada lección oficial la posición, el título y el texto (`body`, el texto plano que guarda `Lesson.save()`).
+  - Si coincide en todo, tomarla por oficial no cambia nada de lo que contiene. Si no coincide, los datos no permiten saber de dónde viene: queda como ruta local, con otra dirección, su texto y su avance, y `load_courses` crea el curso oficial aparte.
+  - Vale para la primera actualización desde T04 y para la vuelta después de revertir.
+  - Se compara también cuando hay posiciones repetidas, que antes de T05 eran posibles.
+- **Media: vínculos de las instalaciones con la T05 anterior (`beec6b6`).** Nueva opción `load_courses --relink`.
+  - Solo vincula con su curso oficial los recursos históricos (`legacy_resource_titles`) que no abren ninguna ruta.
+  - No crea ni reescribe rutas ni lecciones, y no cambia un recurso que ya abre otra ruta.
+  - No se puede combinar con `--force`. La carga normal sigue sin tocar los vínculos de un curso que ya existe, así que respeta una desvinculación manual.
+- **Media: dirección de un curso oficial.**
+  - `LearningPath.clean()` y `save()` rechazan el cambio de slug de una ruta guardada con un slug oficial.
+  - En el administrador, el slug de un curso oficial es de solo lectura y no se rellena desde el título. Las rutas locales pueden seguir cambiando el suyo.
+- **README.** Se explica `--relink`, que la dirección oficial no se puede cambiar y cómo se reconoce ahora un curso al volver a migrar.
+- **Pruebas nuevas (6) y una ajustada.**
+  - `test_migrations.LocalCopyOfAnOfficialCourse` prueba la primera actualización desde 0003 y la vuelta tras revertir. La copia local tiene los seis títulos en orden, seis textos propios y la tercera lección completada; en el caso de la reversión se creó antes que el curso oficial, así que tiene el número interno menor. Tras migrar, con la carga normal y con `--force`, comprueba la dirección, la descripción, los seis textos, la lección completada y su texto, y que el curso oficial tiene sus propios textos.
+  - `test_course_identity.OfficialAddressIsFixed` prueba el modelo y el formulario de edición del administrador. El campo no aparece, el envío con otra dirección guarda la descripción pero conserva `fundamentos-qa`, la dirección sigue en 200 con el avance y la carga no crea un segundo curso. También comprueba que una ruta local sí puede cambiar su dirección.
+  - `HistoricalResources` prueba `--relink` sobre una instalación con la T05 anterior. Hay tres recursos sin vínculo, uno elegido para una ruta local, una descripción y una lección editadas y una lección oficial borrada. Vincula 2 y respeta el resto. Una segunda ejecución vincula 0. Otra prueba comprueba que no se combina con `--force`.
+  - Con el código anterior, las pruebas nuevas dan `FAILED (failures=4, errors=1)`.
+
+### Desviaciones respecto a la tarea
+- **Prueba existente ajustada.** En `test_reapplying_after_a_revert_recognises_the_official_course`, el curso revertido se creaba con textos de relleno (`body='b'`, descripción `'d'`). Ahora se crea con el área, la descripción y el texto reales del curso, que es lo que deja una reversión. Con la regla nueva, una ruta con textos de relleno es local. Las aserciones no cambiaron.
+- **Migración 0005 modificada otra vez.** Solo cambia su lógica de datos. Usa `sanitize_html` y `html_to_text` de `hub/services/courses.py` para calcular el texto esperado de cada lección.
+- **Un curso oficial editado y revertido queda local.** Si se cambió la descripción o el texto de una lección oficial y después se revierte a 0003, al volver a migrar esa ruta queda local con sus ediciones, y `load_courses` crea el curso de nuevo. Es la consecuencia de no adivinar el origen. Está en el README.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 113 tests in 51.458s` · `OK`.
+- PostgreSQL 16 local (`Iniciar-PostgreSQL.ps1`; modo producción, clave aleatoria, base temporal `cicc_corr2_t05` creada y borrada): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 113 tests in 58.117s` · `OK`.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `62 files already formatted` (Ruff 0.17.6).
+- **Copia de la demo de Carlos** (en el directorio temporal; el `demo.sqlite3` conservó su huella `333f4566…53ed09`):
+  - Partida: 6 rutas, 39 lecciones, 23 con HTML y 3 vínculos.
+  - Después de `migrate hub 0003` y `migrate`, los tres cursos recuperaron `fundamentos-qa`, `qa-avanzado` y `certificacion-requerimiento` con los mismos números internos 4, 5 y 6, sin duplicados.
+  - `load_courses` → `Rutas creadas: 0; lecciones creadas: 0; reescritas: 0; recursos vinculados: 0`.
+  - `load_courses --relink` → `recursos vinculados: 3`.
+  - `load_courses --force` → `reescritas: 26`. Quedaron 23 lecciones con HTML y 3 vínculos.
+
+### Preguntas para el arquitecto
+- Sigue abierta la de la entrada original: registrar en D4 el veto de Carlos.
+
+### Observaciones
+- `--relink` no distingue un recurso histórico desvinculado a propósito de uno que perdió el vínculo en la T05 anterior, porque ambos están vacíos. Por eso es una opción expresa y el README lo advierte.

@@ -1,5 +1,7 @@
 """Gestión: plantilla e importación de preguntas, reporte Excel y respaldo de contenido."""
 
+import json
+
 from django.contrib.auth.decorators import permission_required
 from django.core import serializers
 from django.db import transaction
@@ -67,25 +69,48 @@ def report(request):
     return workbook_response(wb, 'reporte-cicc.xlsx')
 
 
+# Orden del respaldo: cada modelo va después de aquellos a los que apunta.
+BACKUP_MODELS = [
+    Resource,
+    ResourceVersion,
+    LearningPath,
+    Lesson,
+    SectionPage,
+    SectionBlock,
+    Assessment,
+    Question,
+    Progress,
+    Attempt,
+    Audit,
+]
+# Las secciones se guardan por su slug y no por su número interno, que cambia si se revierte y se
+# vuelve a aplicar la migración 0009 o en otra instalación (revisión de Codex, 22-11-2026). Sus
+# bloques apuntan a la sección por el slug, y su autor por el nombre de usuario.
+NATURAL_KEY_MODELS = {SectionPage, SectionBlock}
+
+
+def backup_json():
+    """Respaldo de contenido en JSON, con el formato de ``dumpdata`` que lee ``loaddata``."""
+    objects = []
+    for model in BACKUP_MODELS:
+        natural = model in NATURAL_KEY_MODELS
+        objects.extend(
+            json.loads(
+                serializers.serialize(
+                    'json',
+                    model.objects.all(),
+                    use_natural_foreign_keys=natural,
+                    use_natural_primary_keys=natural,
+                )
+            )
+        )
+    return json.dumps(objects, ensure_ascii=False)
+
+
 @permission_required('hub.view_audit', raise_exception=True)
 @require_POST
 def backup(request):
     log(request.user, 'Exportación respaldo de contenido')
-    objects = []
-    for model in [
-        Resource,
-        ResourceVersion,
-        LearningPath,
-        Lesson,
-        SectionPage,
-        SectionBlock,
-        Assessment,
-        Question,
-        Progress,
-        Attempt,
-        Audit,
-    ]:
-        objects.extend(model.objects.all())
-    response = HttpResponse(serializers.serialize('json', objects), content_type='application/json')
+    response = HttpResponse(backup_json(), content_type='application/json')
     response['Content-Disposition'] = 'attachment; filename="cicc-content-backup.json"'
     return response

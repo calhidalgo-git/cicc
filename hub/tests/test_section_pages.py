@@ -408,3 +408,150 @@ class SectionPageMigrations(TransactionTestCase):
         self.assertNotIn('hub_sectionpage', connection.introspection.table_names())
         apps = self.migrate(self.AFTER)
         self.assertEqual(apps.get_model('hub', 'SectionPage').objects.count(), len(NAV))
+
+
+class BackupRestoresBySectionSlug(TransactionTestCase):
+    """Un respaldo se restaura aunque cambien los números internos de las secciones.
+
+    Revisión de Codex (22-11-2026): tras revertir 0009 y volver a aplicarla, las secciones vacías
+    se crean con otros números. El JSON con esos números chocaba, en una instalación recién
+    migrada, con la misma sección guardada con otro número.
+    """
+
+    PAGES = [('hub', '0009_section_pages_data')]
+    NO_PAGES = [('hub', '0008_section_pages')]
+
+    def migrate(self, targets):
+        executor = MigrationExecutor(connection)
+        executor.loader.build_graph()
+        executor.migrate(targets)
+
+    def tearDown(self):
+        self.migrate(MigrationExecutor(connection).loader.graph.leaf_nodes())
+
+    def page_numbers(self):
+        return dict(SectionPage.objects.values_list('slug', 'pk'))
+
+    def counts(self):
+        from ..models import Attempt, Audit, Progress, Resource
+
+        return {
+            model.__name__: model.objects.count()
+            for model in (Resource, LearningPath, Lesson, Progress, Attempt, Audit)
+        }
+
+    def write_theory(self):
+        admin = User.objects.get(username='admin')
+        environment = SectionPage.objects.get(slug='environment')
+        environment.intro_html = '<p>Introducción con la palabra ágata.</p>'
+        environment.origin = 'admin'
+        environment.updated_by = admin
+        environment.save()
+        SectionBlock.objects.create(
+            page=environment, position=1, title='Primero', body_html='<p>Bloque ónice.</p>'
+        )
+        SectionBlock.objects.create(
+            page=environment, position=2, title='Segundo', body_html='<p>Bloque jaspe.</p>'
+        )
+        SectionBlock.objects.create(
+            page=SectionPage.objects.get(slug='glossary'),
+            position=1,
+            title='Defecto',
+            body_html='<p>Un defecto es una diferencia.</p>',
+        )
+
+    def theory(self):
+        return {
+            page.slug: (
+                page.title,
+                page.intro_html,
+                page.origin,
+                page.updated_by.username if page.updated_by else None,
+                [(b.position, b.title, b.body_html, b.body) for b in page.blocks.all()],
+            )
+            for page in SectionPage.objects.select_related('updated_by').prefetch_related('blocks')
+        }
+
+    def empty_installation(self):
+        """Base recién migrada con las cuentas: sin contenido y con las 26 secciones nuevas."""
+        from ..models import (
+            Assessment,
+            Attempt,
+            Audit,
+            Progress,
+            Question,
+            Resource,
+            ResourceVersion,
+        )
+
+        for model in (
+            Audit,
+            Attempt,
+            Progress,
+            Question,
+            Assessment,
+            SectionBlock,
+            SectionPage,
+            Lesson,
+            LearningPath,
+            ResourceVersion,
+            Resource,
+        ):
+            model.objects.all().delete()
+        self.migrate(self.NO_PAGES)
+        self.migrate(self.PAGES)
+
+    def test_backup_after_reapplying_0009_restores_on_a_fresh_installation(self):
+        self.migrate(self.NO_PAGES)
+        self.migrate(self.PAGES)
+        call_command('seed_demo', stdout=StringIO())
+        self.write_theory()
+        first = self.page_numbers()
+
+        # Revertir y volver a aplicar 0009: las secciones vacías reciben otros números.
+        self.migrate(self.NO_PAGES)
+        self.migrate(self.PAGES)
+        self.migrate(MigrationExecutor(connection).loader.graph.leaf_nodes())
+        renumbered = self.page_numbers()
+        self.assertEqual(set(renumbered), {item[0] for item in NAV})
+        self.assertEqual(renumbered['environment'], first['environment'])
+        self.assertNotEqual(renumbered['dashboard'], first['dashboard'])
+
+        self.assertTrue(self.client.login(username='admin', password=PASSWORD))
+        response = self.client.post('/backup/')
+        self.assertEqual(response.status_code, 200)
+        backup = json.loads(response.content)
+        theory, counts = self.theory(), self.counts()
+        pages = [item for item in backup if item['model'] == 'hub.sectionpage']
+        self.assertEqual(len(pages), len(NAV))
+        self.assertTrue(all('pk' not in item for item in pages))
+        blocks = [item for item in backup if item['model'] == 'hub.sectionblock']
+        self.assertEqual(
+            sorted(item['fields']['page'] for item in blocks),
+            [['environment'], ['environment'], ['glossary']],
+        )
+        self.client.logout()
+
+        self.empty_installation()
+        fresh = self.page_numbers()
+        self.assertEqual(set(fresh), set(renumbered))
+        self.assertTrue(any(fresh[slug] != renumbered[slug] for slug in fresh))
+        target = Path(tempfile.mkdtemp(prefix='cicc-respaldo-')) / 'respaldo.json'
+        target.write_text(json.dumps(backup, ensure_ascii=False), encoding='utf-8')
+        call_command('loaddata', str(target), stdout=StringIO())
+
+        # Las secciones conservan el número de la instalación nueva y reciben su teoría.
+        self.assertEqual(self.page_numbers(), fresh)
+        self.assertEqual(self.theory(), theory)
+        self.assertEqual(self.counts(), counts)
+        self.assertEqual(SectionBlock.objects.count(), 3)
+        self.assertTrue(self.client.login(username='admin', password=PASSWORD))
+        response = self.client.get('/p/environment/')
+        self.assertContains(response, 'Bloque jaspe.')
+        response = self.client.get('/p/search/', {'q': 'ónice'})
+        self.assertContains(response, result('environment'))
+
+        # Restaurar el mismo respaldo otra vez no duplica nada.
+        call_command('loaddata', str(target), stdout=StringIO())
+        self.assertEqual(self.page_numbers(), fresh)
+        self.assertEqual(self.theory(), theory)

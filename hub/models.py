@@ -229,8 +229,16 @@ class Audit(models.Model):
     created = models.DateTimeField(auto_now_add=True)
 
 
+class SectionPageManager(models.Manager):
+    def get_by_natural_key(self, slug):
+        return self.get(slug=slug)
+
+
 class SectionPage(models.Model):
-    """Teoría de una opción del menú (una fila por slug de NAV). Se muestra arriba de la sección."""
+    """Teoría de una opción del menú (una fila por slug de NAV). Se muestra arriba de la sección.
+
+    Su clave estable es ``slug``: los respaldos la usan en lugar del número interno.
+    """
 
     ORIGIN_CHOICES = [
         ('', 'Sin contenido'),
@@ -267,6 +275,11 @@ class SectionPage(models.Model):
         ordering = ['id']
         verbose_name = 'página de sección'
         verbose_name_plural = 'páginas de sección'
+
+    objects = SectionPageManager()
+
+    def natural_key(self):
+        return (self.slug,)
 
     def save(self, *args, **kwargs):
         clean_section_page(self)

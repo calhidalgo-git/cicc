@@ -19,6 +19,7 @@ from django.test import TestCase
 
 from ..models import LearningPath, Lesson, Progress, Resource
 from ..services.courses import official_slugs, read_courses
+from .demo import seed_demo
 
 PASSWORD = 'DemoQA!2026'
 OFFICIAL = {'fundamentos-qa': 6, 'qa-avanzado': 11, 'certificacion-requerimiento': 6}
@@ -33,7 +34,7 @@ def load(**options):
 class SeededBase(TestCase):
     @classmethod
     def setUpTestData(cls):
-        call_command('seed_demo', stdout=StringIO())
+        seed_demo(stdout=StringIO())
 
     def ana(self):
         return User.objects.get(username='ana')

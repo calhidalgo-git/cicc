@@ -1,14 +1,14 @@
-from django.core.management import call_command
 from django.test import TestCase
 
 from ..catalog import CONTENT, MODULES
 from ..models import Lesson, Resource
+from .demo import seed_demo
 
 
 class CICCTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        call_command('seed_demo')
+        seed_demo()
 
     def setUp(self):
         self.client.login(username='ana', password='DemoQA!2026')
@@ -31,7 +31,7 @@ class CICCTests(TestCase):
 
     def test_seed_repeat_and_transversal_validation(self):
         counts = (Resource.objects.count(), Lesson.objects.count())
-        call_command('seed_demo')
+        seed_demo()
         self.assertEqual(counts, (Resource.objects.count(), Lesson.objects.count()))
         for r in Resource.objects.filter(area='Transversal'):
             r.full_clean()

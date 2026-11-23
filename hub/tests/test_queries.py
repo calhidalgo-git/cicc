@@ -4,7 +4,6 @@ import re
 from datetime import timedelta
 
 from django.contrib.auth.models import User
-from django.core.management import call_command
 from django.db import connection
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
@@ -12,13 +11,15 @@ from django.utils import timezone
 
 from ..models import Assessment, Attempt, Lesson, Progress
 from ..views import NAV
+from .demo import seed_demo
 
 MAX_QUERIES = 12
 PASSWORD = 'DemoQA!2026'
 RESTRICTED = {'questions', 'reports', 'users', 'roles', 'settings', 'audit', 'backups'}
 ALLOWED_BY_ROLE = {
     'ana': set(),
-    'lucia': {'questions', 'reports', 'audit', 'backups'},
+    # T06 (D10): el Evaluador ya no abre Respaldos.
+    'lucia': {'questions', 'reports', 'audit'},
     'admin': RESTRICTED,
 }
 
@@ -26,7 +27,7 @@ ALLOWED_BY_ROLE = {
 class QueryBudget(TestCase):
     @classmethod
     def setUpTestData(cls):
-        call_command('seed_demo')
+        seed_demo()
         # Intentos y avance para que las listas también tengan filas.
         now = timezone.now()
         for name in ALLOWED_BY_ROLE:

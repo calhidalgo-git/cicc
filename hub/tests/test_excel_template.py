@@ -1,11 +1,11 @@
 from io import BytesIO
 
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.core.management import call_command
 from django.test import TestCase
 from openpyxl import load_workbook
 
 from ..models import Assessment, Question
+from .demo import seed_demo
 
 
 class ExcelTemplate(TestCase):
@@ -13,7 +13,7 @@ class ExcelTemplate(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        call_command('seed_demo')
+        seed_demo()
 
     def setUp(self):
         self.client.login(username='lucia', password='DemoQA!2026')

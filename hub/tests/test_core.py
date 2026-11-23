@@ -1,17 +1,17 @@
 import json
 from datetime import timedelta
 
-from django.core.management import call_command
 from django.test import TestCase
 from django.utils import timezone
 
 from ..models import Assessment, Attempt, Lesson, Progress, Question, Resource, ResourceVersion
+from .demo import seed_demo
 
 
 class HubTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        call_command('seed_demo')
+        seed_demo()
 
     def login(self, name='ana'):
         self.client.login(username=name, password='DemoQA!2026')
@@ -109,7 +109,8 @@ class HubTests(TestCase):
         self.assertEqual(self.client.post('/import/', {'file': upload}).status_code, 200)
         self.assertEqual(Question.objects.count(), before + 1)
         self.assertEqual(self.client.get('/report.xlsx').status_code, 200)
-        self.assertEqual(self.client.post('/backup/').status_code, 200)
+        # T06 (D10): el respaldo es solo del Administrador.
+        self.assertEqual(self.client.post('/backup/').status_code, 403)
         wb = load_workbook(BytesIO(template.content))
         wb.active.append([1, 'Broken', None, None, None, 9, 'No'])
         out = BytesIO()
@@ -122,3 +123,6 @@ class HubTests(TestCase):
             400,
         )
         self.assertEqual(Question.objects.count(), before)
+        self.client.logout()
+        self.login('admin')
+        self.assertEqual(self.client.post('/backup/').status_code, 200)

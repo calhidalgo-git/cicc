@@ -105,16 +105,88 @@ class SectionPageAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
 
-for model in [
-    Resource,
-    ResourceVersion,
-    Lesson,
-    Assessment,
-    Question,
-    Audit,
-    Progress,
-    Attempt,
-]:
+class ResourceVersionInline(admin.TabularInline):
+    model = ResourceVersion
+    extra = 0
+    fields = ('number', 'file', 'notes', 'created')
+    readonly_fields = ('created',)
+
+
+@admin.register(Resource)
+class ResourceAdmin(admin.ModelAdmin):
+    list_display = ('title', 'area', 'kind', 'published')
+    list_filter = ('area', 'kind', 'published')
+    search_fields = ('title', 'description')
+    inlines = [ResourceVersionInline]
+
+
+class QuestionInline(admin.StackedInline):
+    """El formulario de cada pregunta ejecuta Question.clean() antes de guardar."""
+
+    model = Question
+    extra = 0
+    fields = ('text', 'options', 'correct', 'explanation')
+
+
+@admin.register(Assessment)
+class AssessmentAdmin(admin.ModelAdmin):
+    list_display = ('title', 'area', 'minutes', 'pass_score')
+    list_filter = ('area',)
+    search_fields = ('title',)
+    inlines = [QuestionInline]
+
+
+@admin.register(Question)
+class QuestionAdmin(admin.ModelAdmin):
+    """El formulario del administrador ejecuta Question.clean() antes de guardar."""
+
+    list_display = ('text', 'assessment', 'correct')
+    list_filter = ('assessment',)
+    search_fields = ('text',)
+
+
+class ReadOnlyAdmin(admin.ModelAdmin):
+    """Registros que la aplicación escribe sola: se consultan, no se crean ni se cambian.
+
+    Solo un superusuario puede borrarlos.
+    """
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+
+@admin.register(Attempt)
+class AttemptAdmin(ReadOnlyAdmin):
+    list_display = ('user', 'assessment', 'started', 'finished', 'score')
+    list_filter = (('started', admin.DateFieldListFilter), 'finished')
+    search_fields = ('user__username', 'user__first_name', 'user__last_name')
+    list_select_related = ('user', 'assessment')
+    date_hierarchy = 'started'
+
+
+@admin.register(Audit)
+class AuditAdmin(ReadOnlyAdmin):
+    list_display = ('created', 'user', 'action')
+    list_filter = (('created', admin.DateFieldListFilter),)
+    search_fields = ('user__username', 'user__first_name', 'user__last_name', 'action')
+    list_select_related = ('user',)
+    date_hierarchy = 'created'
+
+
+@admin.register(Progress)
+class ProgressAdmin(ReadOnlyAdmin):
+    list_display = ('user', 'lesson')
+    search_fields = ('user__username', 'lesson__title')
+    list_select_related = ('user', 'lesson', 'lesson__path')
+
+
+for model in [ResourceVersion, Lesson]:
     admin.site.register(model)
 
 admin.site.site_header = 'CICC — Centro Integral de Control de Calidad'

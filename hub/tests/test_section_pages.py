@@ -17,6 +17,7 @@ from django.test import TestCase, TransactionTestCase
 from ..models import LearningPath, Lesson, SectionBlock, SectionPage
 from ..permissions import NAV, allowed
 from ..services import pages as pages_service
+from .demo import seed_demo
 
 PASSWORD = 'DemoQA!2026'
 DANGEROUS = '<script>alert(1)</script><p onclick="x">hola</p>'
@@ -31,7 +32,7 @@ def result(slug):
 class SectionPagesBase(TestCase):
     @classmethod
     def setUpTestData(cls):
-        call_command('seed_demo', stdout=StringIO())
+        seed_demo(stdout=StringIO())
 
     def login(self, name):
         self.assertTrue(self.client.login(username=name, password=PASSWORD))
@@ -275,7 +276,7 @@ class LoadPages(SectionPagesBase):
 
     def test_seed_demo_runs_load_pages(self):
         SectionPage.objects.all().delete()
-        call_command('seed_demo', stdout=StringIO())
+        seed_demo(stdout=StringIO())
         self.assertEqual(SectionPage.objects.count(), len(NAV))
 
 
@@ -504,7 +505,7 @@ class BackupRestoresBySectionSlug(TransactionTestCase):
     def test_backup_after_reapplying_0009_restores_on_a_fresh_installation(self):
         self.migrate(self.NO_PAGES)
         self.migrate(self.PAGES)
-        call_command('seed_demo', stdout=StringIO())
+        seed_demo(stdout=StringIO())
         self.write_theory()
         first = self.page_numbers()
 

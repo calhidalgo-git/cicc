@@ -40,10 +40,24 @@ $env:DJANGO_SECRET_KEY=python -c "import secrets; print(secrets.token_urlsafe(64
 $env:CICC_ALLOWED_HOSTS='cicc.ejemplo.local'
 python manage.py migrate
 python manage.py load_courses
+python manage.py bootstrap_roles
 python manage.py createsuperuser
 ```
 
-No ejecutes `seed_demo` contra esta base: crea cuentas de demostración con una contraseña conocida.
+`bootstrap_roles` crea o actualiza los cuatro roles con sus permisos. No crea cuentas ni toca otros grupos, y se puede repetir: vuelve a dejar cada rol con su lista de permisos.
+
+| Rol | Puede |
+|---|---|
+| Participante | Estudiar, rendir evaluaciones y ver sus resultados. |
+| Editor | Ver, agregar y cambiar recursos, versiones, rutas, lecciones y la teoría de las páginas del menú. |
+| Evaluador | Ver, agregar y cambiar evaluaciones y preguntas; ver la auditoría y los reportes. |
+| Administrador | Todos los permisos de la aplicación y de las cuentas. Es el único que descarga el respaldo. |
+
+Asigna los roles a cada persona desde `/admin/`, en Usuarios. El primer administrador lo crea `createsuperuser`.
+
+`seed_demo` se niega a correr sin `CICC_DEMO=1`, porque crea cuentas de demostración con una contraseña conocida.
+
+**Actualizar desde una versión anterior a T06.** Al migrar, todo grupo que podía ver la auditoría recibe también el permiso de reportes, así que conserva el acceso. El grupo `Administrador` recibe el permiso de respaldo. Otros grupos que abrían Respaldos dejan de hacerlo. Después ejecuta `bootstrap_roles` para dejar los cuatro roles con la lista completa.
 
 | Variable | Uso |
 |---|---|
@@ -56,7 +70,7 @@ No ejecutes `seed_demo` contra esta base: crea cuentas de demostración con una 
 | `PGDATABASE`, `PGUSER`, `PGPASSWORD`, `PGHOST`, `PGPORT` | Conexión PostgreSQL; `PGPORT` es opcional (5432). |
 | `QA_SQLITE` | Alias histórico: `1` usa SQLite sin relajar las demás reglas. |
 
-Credenciales ficticias: `admin`, `ana`, `diego`, `lucia`, todos con contraseña `DemoQA!2026`. admin administra; ana participa; diego edita contenido; lucia gestiona evaluaciones y consulta reportes. El comando seed es idempotente y conserva contraseñas existentes. Nunca ejecutes seed en producción.
+Credenciales ficticias: `admin`, `ana`, `diego`, `lucia`, todos con contraseña `DemoQA!2026`. admin administra y descarga el respaldo; ana participa; diego edita contenido; lucia gestiona evaluaciones y consulta reportes y auditoría. El comando seed es idempotente y conserva contraseñas existentes. Solo corre con `CICC_DEMO=1`.
 
 ## Cursos: actualizar, restaurar y revertir
 

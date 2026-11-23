@@ -1,0 +1,23 @@
+from django.core.management.base import BaseCommand, CommandError
+
+from hub.services.roles import ROLE_NAMES, bootstrap_roles
+
+
+class Command(BaseCommand):
+    help = (
+        'Crea o actualiza los grupos Participante, Editor, Evaluador y Administrador con sus '
+        'permisos. No crea usuarios ni toca otros grupos. Seguro en producción.'
+    )
+
+    def handle(self, *args, **options):
+        try:
+            created = bootstrap_roles()
+        except LookupError as error:
+            raise CommandError(str(error)) from error
+        updated = [name for name in ROLE_NAMES if name not in created]
+        self.stdout.write(
+            self.style.SUCCESS(
+                f'Roles creados: {", ".join(created) or "ninguno"}; '
+                f'actualizados: {", ".join(updated) or "ninguno"}.'
+            )
+        )

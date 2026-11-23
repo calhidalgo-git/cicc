@@ -25,12 +25,12 @@ NAV[1:1] = [(s, t, '▤') for s, t in MODULES.items()] + [
 ]
 GATES = {
     'questions': 'hub.change_question',
-    'reports': 'hub.view_audit',
+    'reports': 'hub.view_reports',
     'users': 'auth.view_user',
     'roles': 'auth.view_group',
     'settings': 'auth.change_group',
     'audit': 'hub.view_audit',
-    'backups': 'hub.view_audit',
+    'backups': 'hub.export_backup',
 }
 TITLES = {slug: title for slug, title, _ in NAV}
 

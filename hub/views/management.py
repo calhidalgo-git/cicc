@@ -62,7 +62,7 @@ def import_excel(request):
         )
 
 
-@permission_required('hub.view_audit', raise_exception=True)
+@permission_required('hub.view_reports', raise_exception=True)
 def report(request):
     wb = report_workbook()
     log(request.user, 'Exportación reporte Excel')
@@ -107,7 +107,7 @@ def backup_json():
     return json.dumps(objects, ensure_ascii=False)
 
 
-@permission_required('hub.view_audit', raise_exception=True)
+@permission_required('hub.export_backup', raise_exception=True)
 @require_POST
 def backup(request):
     log(request.user, 'Exportación respaldo de contenido')

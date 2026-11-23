@@ -1,47 +1,22 @@
-from django.contrib.auth.models import Group, Permission, User
+from django.conf import settings
+from django.contrib.auth.models import Group, User
 from django.core.files.base import ContentFile
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 
 from hub.models import Assessment, LearningPath, Lesson, Question, Resource, ResourceVersion
+from hub.services.roles import bootstrap_roles
 
 
 class Command(BaseCommand):
-    help = 'Carga datos ficticios. Idempotente; nunca usar en producción.'
+    help = 'Carga datos ficticios. Idempotente; solo corre con CICC_DEMO=1.'
 
     def handle(self, *args, **kwargs):
-        roles = {
-            'Participante': [],
-            'Editor': [
-                'view_resource',
-                'add_resource',
-                'change_resource',
-                'view_resourceversion',
-                'add_resourceversion',
-                'change_resourceversion',
-                'view_learningpath',
-                'add_learningpath',
-                'change_learningpath',
-                'view_lesson',
-                'add_lesson',
-                'change_lesson',
-                # T12: teoría de las páginas del menú (bloques incluidos).
-                'view_sectionpage',
-                'change_sectionpage',
-            ],
-            'Evaluador': [
-                'view_question',
-                'add_question',
-                'change_question',
-                'view_assessment',
-                'add_assessment',
-                'change_assessment',
-                'view_audit',
-            ],
-            'Administrador': list(Permission.objects.values_list('codename', flat=True)),
-        }
-        for name, codes in roles.items():
-            group, _ = Group.objects.get_or_create(name=name)
-            group.permissions.set(Permission.objects.filter(codename__in=codes))
+        if not settings.CICC_DEMO:
+            raise CommandError(
+                'seed_demo crea cuentas con contraseña conocida y solo se ejecuta en el modo de '
+                'demostración (CICC_DEMO=1). En producción usa bootstrap_roles y createsuperuser.'
+            )
+        bootstrap_roles()
         for username, first, last, role in [
             ('admin', 'Carlos', 'Demo', 'Administrador'),
             ('ana', 'Ana', 'Torres', 'Participante'),

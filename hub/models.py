@@ -222,11 +222,18 @@ class Attempt(models.Model):
     score = models.FloatField(default=0)
     updated = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        permissions = [('view_reports', 'Puede ver reportes globales')]
+
 
 class Audit(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
     action = models.CharField(max_length=200)
     created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        permissions = [('export_backup', 'Puede exportar el respaldo de contenido')]
+        indexes = [models.Index(fields=['created'], name='hub_audit_created_idx')]
 
 
 class SectionPageManager(models.Manager):

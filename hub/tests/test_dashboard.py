@@ -1,11 +1,11 @@
 """T04, paso 6: el dashboard y el menú muestran datos reales en lugar de valores fijos."""
 
 from django.contrib.auth.models import User
-from django.core.management import call_command
 from django.test import TestCase
 from django.utils import timezone
 
 from ..models import Assessment, Attempt, Lesson, Question, Resource
+from .demo import seed_demo
 
 PASSWORD = 'DemoQA!2026'
 
@@ -13,7 +13,7 @@ PASSWORD = 'DemoQA!2026'
 class RealValues(TestCase):
     @classmethod
     def setUpTestData(cls):
-        call_command('seed_demo')
+        seed_demo()
 
     def setUp(self):
         self.client.login(username='ana', password=PASSWORD)

@@ -3,12 +3,12 @@
 Se escribió antes de dividir vistas y plantillas, y pasaba con el código anterior.
 """
 
-from django.core.management import call_command
 from django.test import TestCase
 
 from ..catalog import MODULES
 from ..models import Resource
 from ..views import NAV
+from .demo import seed_demo
 
 PASSWORD = 'DemoQA!2026'
 
@@ -44,7 +44,8 @@ RESTRICTED = {'questions', 'reports', 'users', 'roles', 'settings', 'audit', 'ba
 ALLOWED_BY_ROLE = {
     'ana': set(),
     'diego': set(),
-    'lucia': {'questions', 'reports', 'audit', 'backups'},
+    # T06 (D10): el Evaluador ya no abre Respaldos.
+    'lucia': {'questions', 'reports', 'audit'},
     'admin': RESTRICTED,
 }
 
@@ -62,7 +63,7 @@ def course_urls():
 class PagesBase(TestCase):
     @classmethod
     def setUpTestData(cls):
-        call_command('seed_demo')
+        seed_demo()
 
     def login(self, name='ana'):
         self.assertTrue(self.client.login(username=name, password=PASSWORD))

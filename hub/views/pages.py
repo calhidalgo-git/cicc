@@ -20,6 +20,7 @@ from ..models import (
     Resource,
 )
 from ..permissions import TITLES, allowed
+from ..services.pages import section_theory
 from . import exams, learning, library
 from .common import ctx
 
@@ -133,4 +134,7 @@ def page(request, section='dashboard'):
     template, extra = SECTIONS[section](request, section)
     # base.html muestra en el buscador global la consulta de la URL, en cualquier sección.
     extra.setdefault('query', request.GET.get('q', ''))
+    # Teoría de la sección (T12), que pages/_section.html muestra arriba de su contenido.
+    extra['theory'] = section_theory(section)
+    extra['can_edit_theory'] = request.user.has_perm('hub.change_sectionpage')
     return render(request, template, ctx(request, section, **extra))

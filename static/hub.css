@@ -4,3 +4,9 @@
 
 .qa-week-content .test-types-intro{margin-bottom:32px}
 .qa-week-content .execution-strategies-heading{margin-top:40px;margin-bottom:32px}
+/* T12: teoría de cada sección, arriba de su contenido */
+.theory-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.theory-edit,.theory-pending a{font-size:12px}
+.theory-block{margin-top:18px}
+.theory-block h3{font-size:15px;margin-bottom:8px}
+.theory-pending{font-size:12px;color:#8b96a7;margin:0 0 18px}

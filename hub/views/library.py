@@ -7,6 +7,8 @@ from django.shortcuts import get_object_or_404, render
 
 from ..catalog import MODULES
 from ..models import Assessment, LearningPath, Lesson, Resource, ResourceVersion
+from ..permissions import TITLES, allowed
+from ..services.pages import search_theory
 from .common import ctx, log
 from .learning import render_path
 
@@ -56,6 +58,10 @@ def resource_list(request, section):
             )
             if searching
             else LearningPath.objects.none(),
+            # Teoría de las secciones del menú que la persona puede abrir (T12).
+            search_pages=search_theory(query, [s for s in TITLES if allowed(request.user, s)])
+            if searching
+            else [],
             search_assessments=Assessment.objects.filter(
                 Q(title__icontains=query) | Q(area__icontains=query)
             )

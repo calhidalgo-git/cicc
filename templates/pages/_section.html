@@ -2,6 +2,7 @@
 {% comment %}
   Diseño común de las secciones /p/<sección>/: antetítulo, título, subtítulo y fecha.
   Cada sección sobrescribe los bloques que necesita; no hay condiciones por sección.
+  Debajo del encabezado va la teoría de la sección (SectionPage, T12), igual para todas.
 {% endcomment %}
 {% block content %}
 <div class="eyebrow">SECCIÓN DE CONTROL DE CALIDAD / {% block eyebrow %}{{ title|upper }}{% endblock %}</div>
@@ -12,5 +13,27 @@
   </div>
   <span class="date-chip">◷ &nbsp; {% now 'd M Y' %}</span>
 </div>
+{% if theory and not theory.empty %}
+<section class="panel theory" aria-label="Teoría de la sección">
+  <div class="theory-head">
+    <h2>{{ theory.title }}</h2>
+    {% if can_edit_theory %}<a class="theory-edit" href="/admin/hub/sectionpage/{{ theory.pk }}/change/">Editar contenido ↗</a>{% endif %}
+  </div>
+  {% if theory.intro_html %}
+  <div class="theory-intro">{{ theory.intro_html|safe }}</div>
+  {% endif %}
+  {% for block in theory.blocks %}
+  <article class="theory-block">
+    <h3>{{ block.title }}</h3>
+    {{ block.body_html|safe }}
+  </article>
+  {% endfor %}
+</section>
+{% else %}
+<p class="theory-pending">
+  Contenido pendiente
+  {% if can_edit_theory %}· <a href="{% if theory %}/admin/hub/sectionpage/{{ theory.pk }}/change/{% else %}/admin/hub/sectionpage/{% endif %}">Editar contenido ↗</a>{% endif %}
+</p>
+{% endif %}
 {% block section %}{% endblock %}
 {% endblock %}

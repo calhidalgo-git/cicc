@@ -17,6 +17,8 @@ from ..models import (
     Question,
     Resource,
     ResourceVersion,
+    SectionBlock,
+    SectionPage,
 )
 from ..services.excel import (
     import_questions,
@@ -75,6 +77,8 @@ def backup(request):
         ResourceVersion,
         LearningPath,
         Lesson,
+        SectionPage,
+        SectionBlock,
         Assessment,
         Question,
         Progress,

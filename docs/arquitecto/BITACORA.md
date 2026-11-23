@@ -391,3 +391,54 @@ La ficha prohíbe que el dashboard del participante consulte usuarios, grupos o 
 
 ### Preguntas para el arquitecto
 - Ninguna.
+
+## T05 — Correcciones de la revisión de Codex (22-11-2026)
+- Fecha: 2026-11-22
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T05-cursos-al-modelo`. El trabajo se hizo en el worktree `CICC-local\original\T05`, con HEAD separado, y la rama se adelantó desde la carpeta de Carlos con `merge --ff-only`. Merge de T04 `0b42cc3` y commit `130b628`. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+- **Merge de T04** con las correcciones de T02 a T04.
+  - En `hub/views/pages.py` se unieron el contador de 3 áreas y el orden y `select_related` de T05.
+  - En `BITACORA.md` se conservaron las entradas de ambos lados y la decisión de Carlos sobre D4 sigue dentro de la entrada de T05.
+- **Alta: identidad reservada de los tres cursos.** Los slugs `fundamentos-qa`, `qa-avanzado` y `certificacion-requerimiento`, leídos de `hub/content/courses/*/course.json`, solo los usa `load_courses`.
+  - `LearningPath.save()` da a una ruta nueva un slug no reservado: una ruta local «Fundamentos QA» queda en `fundamentos-qa-2`. También rechaza que otra ruta tome un slug reservado.
+  - `LearningPath.clean()` muestra el error en el administrador.
+  - La migración 0005 ya no asigna el slug oficial solo por el título. Lo hace únicamente si la ruta conserva el título y todas las lecciones del curso, con su posición y su título, que es lo que ocurre al volver a aplicarla tras revertir. Una ruta local con el mismo nombre recibe otro slug.
+  - Como no hay cambios de esquema, no hace falta una migración nueva. Las bases ya migradas no cambian.
+- **Media: vínculos históricos (veto de Carlos a D4).** Cada `course.json` lista en `legacy_resource_titles` los títulos que abrían ese curso en T04: los tres recursos históricos y las variantes que reconocía `resource()`.
+  - `load_courses` vincula esos recursos al crear el curso o con `--force`. Solo toca los recursos sin ruta asignada, así que respeta una ruta elegida en el administrador y nunca vincula con una ruta local.
+  - Una carga normal no deshace una desvinculación manual. El comando informa los recursos vinculados.
+- **Media: respaldo JSON de T04.** `loaddata` admite directamente el archivo de T04, mediante receptores `pre_save` con `raw`:
+  - la ruta sin slug recibe uno no reservado;
+  - una lección con la posición repetida pasa al final de su ruta;
+  - si una fila del respaldo ocuparía un curso oficial que ya existe, la restauración se detiene sin aplicar nada.
+  - Hay que restaurar en una base vacía de contenido y ejecutar después `load_courses`. Está documentado en `README.md`.
+- **Media: recuperación tras revertir.** Está documentada en `README.md`: qué se pierde al volver a 0003, cómo `load_courses --force` repone el contenido y los vínculos, y cómo un respaldo JSON hecho antes de revertir conserva las ediciones manuales.
+- **Baja: rangos históricos.** `/qa/fundamentos/semana/<n>/`, `/qa/avanzado/semana/<n>/` y `/qa/certificacion/tema/<n>/` responden 404 fuera de 1–6, 1–11 y 1–6, aunque la ruta tenga más lecciones. Las ampliaciones se abren en `/rutas/<slug>/<n>/`.
+- **Pruebas.**
+  - `hub/tests/test_course_identity.py` tiene 13 pruebas: identidad reservada, administrador, carga normal y `--force` con avance, vínculos, rangos antiguos y respaldo de T04 con varias rutas y avance, incluido el rechazo sin cambios.
+  - `hub/tests/test_migrations.py` agrega 3 pruebas de actualización real desde 0003.
+  - Con el código anterior, las pruebas nuevas dan `FAILED (failures=4, errors=1)`.
+
+### Desviaciones respecto a la tarea
+- **Cambio en una prueba existente.** En `test_existing_paths_lessons_and_progress_survive`, una ruta titulada «QA Avanzado y Especialización» y sin lecciones esperaba el slug `qa-avanzado`. Ahora espera `qa-avanzado-y-especializacion`: es una ruta local y el encargo pide que no tome la identidad del curso oficial. El resto de las aserciones no cambió.
+- **Migración 0005 modificada.** Solo cambia su lógica de datos. Las bases que ya la aplicaron no se ven afectadas.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 106 tests in 56.214s` · `OK`.
+- PostgreSQL 16 local (modo producción, clave aleatoria, base temporal `cicc_corr_t05` creada y borrada): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 106 tests in 65.266s` · `OK`.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `62 files already formatted`.
+- **Escenarios con datos reales** (copias en el directorio temporal; el `demo.sqlite3` de Carlos conservó su huella `333f4566e875e09a` antes y después):
+  1. **Actualización.** Base histórica de T01 (0003) con el código de T04, más una ruta local «Fundamentos QA», su lección «Mi lección local» completada y otro avance. `migrate` y `load_courses` dieron `Rutas creadas: 3; lecciones creadas: 23; reescritas: 0; recursos vinculados: 3`, con 7 rutas y 40 lecciones. La local quedó en `fundamentos-qa-2` con su lección y su avance, y la oficial en `fundamentos-qa` con 6. Los tres recursos históricos responden 200 y abren su ruta. Con `--force`, la ruta local y los avances no cambiaron.
+  2. **Respaldo de T04.** El JSON exportado por `/backup/` con T04 tenía 76 objetos. Se restauró con `loaddata` en una base T05 vacía de contenido, con las 4 cuentas: `Installed 76 object(s)`. Se restauraron todos los objetos por modelo, con los avances idénticos. Después, `load_courses` agregó los tres cursos y vinculó los tres recursos.
+  3. **Revertir.** En una copia de la demo de Carlos (0007: 6 rutas, 39 lecciones, 23 lecciones y 3 introducciones con HTML, 3 recursos vinculados) se ejecutó `migrate hub 0003` y luego `migrate`. Los tres cursos recuperaron su slug, sin duplicados, y el HTML y los vínculos quedaron en 0. `load_courses` sin `--force` no los repone. `load_courses --force` repuso 23 y 3 HTML y 3 vínculos.
+  4. **Recuperar ediciones.** Con una edición manual y un respaldo JSON de T05 hecho antes de revertir, el ciclo revertir, migrar y `loaddata` (`Installed 98 object(s)`) devolvió la edición, el HTML y los vínculos.
+
+### Preguntas para el arquitecto
+- Sigue abierta la de la entrada original: registrar en D4 el veto de Carlos.
+
+### Observaciones
+- Una base que ya aplicó el T05 anterior con una ruta local llamada como un curso oficial tiene esa ruta mezclada con el curso. No se puede separar de forma automática. No hay indicios de que ocurra en la demo de Carlos: sus 6 rutas son las 3 de la demo y las 3 oficiales.
+- Si se edita el título de una lección oficial y después se revierte a 0003, al volver a migrar esa ruta se trata como local y `load_courses` crea el curso de nuevo. Lo indica el README: conviene hacer un respaldo antes de revertir.

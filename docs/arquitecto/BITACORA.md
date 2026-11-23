@@ -310,3 +310,32 @@ Las cinco pruebas nuevas de claves y acceso fallan con la configuración y la pl
 
 ### Preguntas para el arquitecto
 - Ninguna.
+
+## T04 — Correcciones de la revisión de Codex (22-11-2026)
+- Fecha: 2026-11-22
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T04-dividir-vistas-y-plantillas`, worktree `CICC-local\original\T04`. Merge de T03 `e6920c4` y commit `9a5cb18`. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+- **Merge de T03** con las correcciones de T02 y T03. En `BITACORA.md` se conservaron las entradas de ambos lados.
+- **Áreas del panel (decisión 2 de Carlos, 22-11-2026).** El contador cuenta las tres áreas con recursos publicados: Mainframe, Distribuido y Transversal. Se retira la desviación «Áreas de especialización sin Transversal» de la entrada original.
+  - `hub/views/pages.py` usa una sola consulta agrupada por área. Da el total de recursos y las áreas con publicados, en el orden de las opciones del modelo, así que no suma consultas.
+  - La línea bajo el número decía «Mainframe + Distribuido», un texto fijo. Ahora nombra las áreas contadas («Mainframe + Distribuido + Transversal» en la demo), para que no contradiga el número.
+  - `hub/tests/test_dashboard.py` espera 3 con la demo, 2 al despublicar Distribuido y 1 al despublicar también Transversal.
+
+### Excepción registrada: conteo de preguntas y datos de la sesión
+La ficha prohíbe que el dashboard del participante consulte usuarios, grupos o auditoría y que lea preguntas. Por eso queda escrita esta excepción, que ya existía en la implementación y en `hub/tests/test_queries.py` (`test_participant_dashboard_reads_only_its_own_data`):
+- **Preguntas.** Solo se cuentan con `COUNT("hub_question"."id")` dentro de la consulta de evaluaciones, para el número real del próximo desafío que exige el paso 6. Ninguna consulta hace `FROM "hub_question"` ni lee enunciados.
+- **Usuario y grupos.** Solo se leen el usuario de la sesión, sus grupos y sus permisos (filtrados por su id), que usan la autenticación y el menú lateral. Nunca se listan otros usuarios ni grupos.
+- **Auditoría.** No se consulta.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 70 tests in 33.271s` · `OK`.
+- PostgreSQL 16 local (modo producción, clave aleatoria, base temporal `cicc_corr_t04` creada y borrada): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 70 tests in 38.892s` · `OK`.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `58 files already formatted`.
+- `test_queries` pasa sin cambios: ninguna sección supera 12 consultas y el dashboard del participante cumple la excepción anterior.
+- Cambio visible: en el panel, «02» pasa a «03» y la línea bajo el número nombra las tres áreas. Falta que Carlos lo vea.
+
+### Preguntas para el arquitecto
+- Ninguna.

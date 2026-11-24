@@ -1079,3 +1079,27 @@ Revisión pedida por Carlos para no dejar pendientes:
   - `<p> </p>` deja el texto plano vacío (`Lesson.save()`, anterior a T05).
   - `ARQUITECTURA.md` y `CAMBIOS-CICC.md` describen la versión anterior (T11).
   - Las vistas fuera de `/p/` no se miden en consultas (T04).
+
+## T06 — Revisión completa de pendientes (24-11-2026)
+- Fecha: 2026-11-24
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T06-roles-y-permisos`, en `CICC-local\original\T06`. Merge de T12: `b1cc9b9`. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+- **Correcciones de T05 y T12.** Llegan con el merge `b1cc9b9`: la ayuda de `load_courses`, `ARQUITECTURA-OBJETIVO.md` y las pruebas limpiadas.
+- **Tabla de Usuarios (observación abierta desde T04).** Mostraba «Administrador» a cualquier cuenta sin grupo. Ahora muestra el grupo; si no hay, «Superusuario» o «Sin rol». Es parte de T06 porque los roles reales son de esta tarea.
+- **Prueba duplicada.** `test_codex_review_6_roles.py` heredaba y volvía a ejecutar cuatro pruebas de otro módulo. Ahora tiene su propio caso, con las pruebas del aviso en español y de la tabla de Usuarios.
+
+### Criterios de aceptación de la ficha
+- [x] Base vacía sin `CICC_DEMO`: `migrate`, `bootstrap_roles` y `createsuperuser` dejan un sistema utilizable sin cuentas demo (`test_production_setup_without_demo_accounts`; probado a mano en PostgreSQL en la entrada original).
+- [x] `seed_demo` sin `CICC_DEMO=1` termina con error y no escribe nada (`SeedDemoOutsideDemo`).
+- [x] Solo el Administrador o un superusuario descargan el respaldo (`AccessMatrix`).
+- [x] El administrador de `Attempt` y `Audit` no ofrece agregar ni guardar (`test_no_add_or_save_buttons_for_attempts_audit_and_progress`). Por decisión de Carlos, tampoco permite borrar un avance.
+- [x] Pruebas en SQLite y PostgreSQL.
+
+### Estado de observaciones anteriores
+- **Resuelta:** «Editor y permisos de teoría». Está en la matriz y en D11 (decisión de Carlos).
+- **Siguen como estaban, sin necesidad de cambio:**
+  - `ResourceVersion` y `Lesson` se registran sin configuración propia, porque la ficha no los pide.
+  - El Evaluador ve `Audit` en modo lectura.

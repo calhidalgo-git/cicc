@@ -8,7 +8,7 @@
     <tr>
       <td>{{ u.get_full_name }}</td>
       <td>{{ u.username }}</td>
-      <td>{{ u.groups.all.0.name|default:'Administrador' }}</td>
+      <td>{% with group=u.groups.all.0 %}{% if group %}{{ group.name }}{% elif u.is_superuser %}Superusuario{% else %}Sin rol{% endif %}{% endwith %}</td>
       <td>{% if u.is_active %}<span class="pill green">Activo</span>{% else %}Inactivo{% endif %}</td>
     </tr>
     {% endfor %}

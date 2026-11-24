@@ -1045,3 +1045,37 @@ Ninguna.
   - Con `80fcf9f`: `migrate` y `bootstrap_roles`.
   - Con la versión nueva, `migrate` aplicó 0008, 0010 (unión), 0013 y 0014. Resultado: 26 páginas, 23 lecciones marcadas y 0, 14, 8 y 58 permisos.
   - `migrate hub 0009` y vuelta: los mismos números.
+
+## T05 — Revisión completa de pendientes (24-11-2026)
+- Fecha: 2026-11-24
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T05-cursos-al-modelo`, en la carpeta de Carlos. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+Revisión pedida por Carlos para no dejar pendientes:
+- **Ayuda de `load_courses`.** Decía «por slug y posición». Ahora describe la marca de lección oficial, también en `--force`.
+- **`ARQUITECTURA-OBJETIVO.md`.** La tabla de modelos incluye `Lesson.official_key`.
+- **Pruebas sin efecto.**
+  - Se quitó `test_codex_review_4.test_after_ordering_the_lessons_force_works_again`. Con el diseño nuevo pasaba sin comprobar nada; lo cubren las pruebas de `test_codex_review_6.py`.
+  - `test_codex_review_5.PracticeWithARepeatedTitle` comprueba el aviso nuevo en lugar del que ya no existe.
+
+### Criterios de aceptación de la ficha
+- [x] El `grep` de títulos solo encuentra `seed_demo.py`, pruebas y los `course.json`. Esos `course.json` llevan `legacy_resource_titles` por el veto de Carlos a D4, anotado en la corrección de la primera revisión.
+- [x] Las plantillas trasladadas ya no existen.
+- [x] Las migraciones se aplican sobre una copia de `demo.sqlite3` sin perder rutas, lecciones ni progreso, y se revierten. Tras revertir, los cursos se recuperan con el respaldo (decisión de Carlos).
+- [x] Pruebas en SQLite y PostgreSQL.
+- [ ] **Comparación visual de una lección de cada curso contra `main`: pendiente de Carlos.** El texto de cada lección coincide con su archivo (`test_each_lesson_text_matches_its_original_file`).
+- **Desviación del paso 4.** `load_courses` identifica las lecciones por su marca y no por `slug` y `position` (decisión de Carlos, 24-11-2026).
+
+### Estado de observaciones anteriores
+- **Resueltas:**
+  - «ID fijo en la plantilla de importación» (T02) se corrigió en T03.
+  - «Insignia ajena» (T03) se corrigió en T03.
+  - «`updated_by` como id de usuario» (T12) se resolvió en la tercera revisión: el respaldo guarda las personas por nombre de usuario.
+- **Superadas por el diseño nuevo:**
+  - «Ruta local mezclada con el curso» y «título editado y reversión» (22-11-2026). Una lección propia sin marca ya no se reescribe con `--force`. Al revertir no se reconoce ningún curso.
+- **Siguen abiertas:**
+  - `<p> </p>` deja el texto plano vacío (`Lesson.save()`, anterior a T05).
+  - `ARQUITECTURA.md` y `CAMBIOS-CICC.md` describen la versión anterior (T11).
+  - Las vistas fuera de `/p/` no se miden en consultas (T04).

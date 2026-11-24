@@ -8,9 +8,7 @@
 """
 
 import json
-import tempfile
 from io import StringIO
-from pathlib import Path
 
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
@@ -19,6 +17,7 @@ from django.test import TestCase
 
 from ..models import LearningPath, Lesson, Progress, Resource
 from ..services.courses import official_slugs, read_courses
+from .temp import temp_folder
 
 PASSWORD = 'DemoQA!2026'
 OFFICIAL = {'fundamentos-qa': 6, 'qa-avanzado': 11, 'certificacion-requerimiento': 6}
@@ -390,7 +389,7 @@ def t04_backup(users):
 
 class RestoreT04Backup(SeededBase):
     def write(self, objects):
-        folder = Path(tempfile.mkdtemp(prefix='cicc-respaldo-'))
+        folder = temp_folder(self, prefix='cicc-respaldo-')
         target = folder / 'respaldo-t04.json'
         target.write_text(json.dumps(objects, ensure_ascii=False), encoding='utf-8')
         return target

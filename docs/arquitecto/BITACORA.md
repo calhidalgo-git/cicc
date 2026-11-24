@@ -793,3 +793,22 @@ Ninguna.
 - `ruff check .` → `All checks passed!` · `ruff format --check .` → `65 files already formatted`.
 - **Pruebas nuevas** (`hub/tests/test_codex_review_5.py`, 6). Con el código anterior: `FAILED (failures=4, errors=1)`. La sexta comprueba que `--force` vuelve a funcionar después de ordenar.
 - **Copia de la demo de Carlos** (worktree temporal borrado; huella `333f4566e875e09a` sin cambios): tras `migrate hub 0003` y `migrate`, los tres cursos recuperaron su dirección (4, 5 y 6). `--relink` → 3. `--force` → 26. Quedaron 6 rutas, 39 lecciones, 23 con HTML y 3 vínculos.
+
+## T12 — Correcciones de la quinta revisión de Codex (24-11-2026)
+- Fecha: 2026-11-24
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T12-paginas-del-menu`, en `CICC-local\original\T12`. Merge de T05: `5b18195`. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+- **Correcciones de T05.** Llegan con el merge `5b18195`: semanas reconocidas por título o texto, curso renombrado o reescrito al revertir, reordenación en un solo guardado, práctica con título repetido y límites conocidos (opción 2 de Carlos). Ver la entrada de T05 del mismo día.
+- **Conflictos.** En `hub/admin.py` se juntaron las importaciones `Count` (T12) y `Max` (T05). En el README se conservó el párrafo de las páginas de sección y la guía nueva de T05. Queda una sola guía de recuperación.
+
+### Desviaciones respecto a la tarea
+Ninguna.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 175 tests in 162.975s` · `OK`.
+- PostgreSQL 16.16 local (base temporal borrada): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 175 tests in 176.031s` · `OK`.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `72 files already formatted`.
+- README: una sola sección «Revertir las migraciones de cursos», un solo «Límites conocidos» y ninguna marca de conflicto.

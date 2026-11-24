@@ -87,22 +87,51 @@ def link_legacy_resources(path, titles, summary):
     El recurso se reconoce por su título. Si hay más de un recurso con ese título, no se puede
     saber cuál es el histórico: no se toca ninguno y el título queda en ``summary['ambiguous']``
     para que se elija en el administrador (tercera revisión de Codex, 23-11-2026).
+
+    Si algún recurso ya abre el curso, el vínculo histórico existe: no se vincula otro. Así un
+    manual local con el título anterior de un recurso histórico renombrado no pasa a abrir el
+    curso (cuarta revisión de Codex, 24-11-2026).
     """
     from hub.models import Resource
 
+    linked = Resource.objects.filter(learning_path=path).exists()
     for title in titles:
         resources = list(Resource.objects.filter(title=title))
         if len(resources) > 1:
             summary['ambiguous'].append(title)
             continue
-        if resources and resources[0].learning_path_id is None:
+        if not linked and resources and resources[0].learning_path_id is None:
             resources[0].learning_path = path
             resources[0].save(update_fields=['learning_path'])
             summary['linked'] += 1
+            linked = True
+
+
+def shifted_lessons(path, course):
+    """Posiciones de la ruta donde hay una lección oficial fuera de su lugar.
+
+    Una base que aplicó la migración 0005 anterior al 24-11-2026 pudo dar la dirección oficial a
+    una ruta con lecciones propias antes de las oficiales y renumerarlas. Ahí la lección oficial
+    «Semana 1» quedó, por ejemplo, en la posición 3, y en la 1 hay un ejercicio propio.
+    Reescribir por posición borraría el ejercicio (cuarta revisión de Codex, 24-11-2026).
+    """
+    official = {item['title']: item['position'] for item in course['lessons']}
+    return sorted(
+        position
+        for position, title in path.lessons.values_list('position', 'title')
+        if title in official and official[title] != position
+    )
 
 
 def empty_summary():
-    return {'paths': 0, 'lessons': 0, 'updated': 0, 'linked': 0, 'ambiguous': []}
+    return {
+        'paths': 0,
+        'lessons': 0,
+        'updated': 0,
+        'linked': 0,
+        'ambiguous': [],
+        'protected': [],
+    }
 
 
 @transaction.atomic
@@ -131,11 +160,19 @@ def load_courses(force=False):
     el mismo nombre tiene otro slug y no se toca) y las lecciones por ``position``.
 
     Al crear un curso, o con ``force``, vincula los recursos históricos que lo abrían.
+
+    Si una lección oficial está fuera de su posición (``shifted_lessons``), las lecciones de esa
+    ruta no se reescriben ni se crean: no se sabe qué lección es cuál. La ruta queda en
+    ``summary['protected']`` para ordenarla en el administrador.
     """
     from hub.models import LearningPath, Lesson
 
     summary = empty_summary()
     for course in read_courses():
+        path = LearningPath.objects.filter(slug=course['slug']).first()
+        if path is not None and shifted_lessons(path, course):
+            summary['protected'].append(course['title'])
+            continue
         fields = {
             'title': course['title'],
             'area': course['area'],
@@ -143,7 +180,6 @@ def load_courses(force=False):
             'position': course['position'],
             'intro_html': (course['dir'] / 'intro.html').read_text(encoding='utf-8'),
         }
-        path = LearningPath.objects.filter(slug=course['slug']).first()
         created = path is None
         if created:
             path = LearningPath(slug=course['slug'], **fields)

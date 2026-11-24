@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
-from django.db import models
+from django.db import models, transaction
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils.text import slugify
@@ -86,9 +86,18 @@ class LearningPathQuerySet(models.QuerySet):
     """
 
     def update(self, **kwargs):
-        if 'slug' in kwargs:
-            official = official_course_slugs()
-            new = kwargs['slug']
+        """Comprueba el slug que queda guardado, no el valor recibido: con una expresión de
+        Django (``Concat``, ``Value``, ``F``…) el valor solo se conoce después de aplicarla
+        (cuarta revisión de Codex, 24-11-2026). Si una ruta cambia de slug o toma uno oficial,
+        se deshace todo el cambio.
+        """
+        if 'slug' not in kwargs:
+            return super().update(**kwargs)
+        official = official_course_slugs()
+        new = kwargs['slug']
+        if isinstance(new, str):
+            # Un valor literal se comprueba antes: la base rechazaría el slug repetido sin decir
+            # que es oficial.
             others = self.exclude(slug=new)
             if others.filter(slug__in=official).exists():
                 raise ValidationError('La dirección de un curso oficial no se puede cambiar.')
@@ -97,9 +106,25 @@ class LearningPathQuerySet(models.QuerySet):
                     f'El slug {new!r} está reservado para un curso oficial; '
                     'solo load_courses puede usarlo.'
                 )
-        return super().update(**kwargs)
+        with transaction.atomic(using=self.db):
+            before = dict(self.values_list('pk', 'slug'))
+            rows = super().update(**kwargs)
+            after = self.model._base_manager.using(self.db).filter(pk__in=list(before))
+            for pk, slug in after.values_list('pk', 'slug'):
+                if slug == before[pk]:
+                    continue
+                if before[pk] in official:
+                    raise ValidationError('La dirección de un curso oficial no se puede cambiar.')
+                if slug in official:
+                    raise ValidationError(
+                        f'El slug {slug!r} está reservado para un curso oficial; '
+                        'solo load_courses puede usarlo.'
+                    )
+        return rows
 
     def bulk_update(self, objs, fields, *args, **kwargs):
+        # Una lista: un iterador se consumiría al comprobarlo y no se guardaría nada.
+        objs = list(objs)
         if 'slug' in fields:
             for obj in objs:
                 if obj.leaves_official_slug() or obj.takes_official_slug():

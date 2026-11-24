@@ -49,7 +49,7 @@ python manage.py createsuperuser
 | Rol | Puede |
 |---|---|
 | Participante | Estudiar, rendir evaluaciones y ver sus resultados. |
-| Editor | Ver, agregar y cambiar recursos, versiones, rutas, lecciones y la teoría de las páginas del menú. |
+| Editor | Ver, agregar y cambiar recursos, versiones, rutas y lecciones. En las páginas del menú, editar la teoría y agregar, cambiar o quitar sus bloques; las páginas no se crean ni se borran: las crea la migración o `load_pages`. |
 | Evaluador | Ver, agregar y cambiar evaluaciones y preguntas; ver la auditoría y los reportes. |
 | Administrador | Todos los permisos de la aplicación y de las cuentas. Es el único que descarga el respaldo. |
 
@@ -85,7 +85,7 @@ python manage.py load_courses
 
 `load_courses` crea los cursos que falten. Al crearlos, vincula con su curso los recursos que lo abrían antes, como «Guía de pruebas batch y JCL», «Checklist de pruebas de API REST» e «Introducción a DB2 para QA». Solo toca los recursos sin ruta asignada. Si hay dos o más recursos con uno de esos títulos, no vincula ninguno y avisa: elige en el administrador cuál abre el curso. Si algún recurso ya abre el curso, no vincula otro, aunque tenga el título antiguo de un recurso histórico renombrado. Sin `--force` no modifica lo que ya existe.
 
-**Lecciones oficiales y `--force`.** Cada lección que crea `load_courses` lleva una marca interna de «lección oficial», que no se edita en el administrador. `load_courses --force` solo reescribe lecciones con esa marca, estén en la posición que estén. Una lección propia, como un ejercicio, nunca se reescribe, aunque tenga el título de una semana o esté en su posición. Si falta una lección oficial y su posición la ocupa una lección propia, `load_courses` la conserva, no crea la oficial y avisa: si quieres la oficial, mueve o quita esa lección en el administrador y vuelve a ejecutar el comando. En las instalaciones y los respaldos anteriores al 24-11-2026, que no traen la marca, `migrate` y `load_courses` marcan solo las lecciones idénticas a la oficial (misma posición, título y texto); las que editaste quedan sin marca y `--force` no las toca. Las lecciones de una ruta se pueden reordenar, o quitar y dar su puesto a otra, en un solo guardado del administrador.
+**Lecciones oficiales y `--force`.** Cada lección que crea `load_courses` lleva una marca interna de «lección oficial», que no se edita en el administrador. `load_courses --force` solo reescribe lecciones con esa marca, estén en la posición que estén. Una lección propia, como un ejercicio, nunca se reescribe, aunque tenga el título de una semana o esté en su posición. Si falta una lección oficial y su posición la ocupa una lección propia, `load_courses` la conserva, no crea la oficial y avisa: si quieres la oficial, mueve o quita esa lección en el administrador y vuelve a ejecutar el comando. En las instalaciones y los respaldos anteriores al 24-11-2026, que no traen la marca, `migrate` y `load_courses` marcan solo las lecciones idénticas a la oficial (misma posición, título y texto); las que editaste quedan sin marca y `--force` no las toca. «Idéntica» se mide por el texto sin formato: una lección sin marca en la que solo cambiaste el formato o un enlace cuenta como idéntica, recibe la marca y `--force` le devolvería el formato oficial. Si hiciste ese tipo de cambios, haz un respaldo antes de usar `--force`. Una lección que pasas a otra ruta pierde su marca: es una lección propia de la ruta nueva, y `load_courses` repone la oficial en el curso. Las lecciones de una ruta se pueden reordenar, o quitar y dar su puesto a otra, en un solo guardado del administrador.
 
 **Si ya aplicaste la T05 anterior** y los tres recursos históricos quedaron sin abrir su curso, ejecuta:
 
@@ -114,9 +114,20 @@ Las páginas de sección del menú se guardan en el respaldo por su clave (`dash
 
 Cada curso vuelve a su dirección, con sus lecciones, sus marcas, tus ediciones y el avance. Si ejecutas `load_courses` sin restaurar, crea los cursos otra vez y los anteriores quedan como rutas propias con el avance.
 
+**Volver a una versión anterior del programa.** Revertir migraciones (`migrate hub <número>`) deshace cambios de la base, pero no garantiza que el programa anterior pueda escribir en ella: por ejemplo, la marca de lección oficial puede quedar en la base y el programa anterior no la conoce. Antes de actualizar, haz siempre una **copia completa de la base**:
+
+```powershell
+# SQLite (demo): copia el archivo con el servidor detenido
+Copy-Item demo.sqlite3 demo-antes-de-actualizar.sqlite3
+# PostgreSQL
+pg_dump -Fc -f cicc-antes-de-actualizar.dump cicc
+```
+
+Para volver atrás, instala la versión anterior del programa y restaura esa copia (en PostgreSQL, `pg_restore --clean -d cicc cicc-antes-de-actualizar.dump`). El respaldo JSON de `/backup/` no sustituye a esta copia: no incluye cuentas ni permisos.
+
 **Límites conocidos** (aceptados por Carlos el 24-11-2026):
 
-- Restaurar en la misma base después de revertir puede fallar si dos rutas propias tenían direcciones personalizadas que se cruzan (por ejemplo, la ruta A con la dirección `ruta-b`). `loaddata` se detiene sin aplicar nada. Restaura entonces en una base nueva.
+- Restaurar en la misma base después de revertir puede fallar si, al volver a migrar, una ruta recibe la dirección que otra tenía en el respaldo. Basta con que una sola ruta tuviera una dirección elegida a mano (por ejemplo, la ruta A con `ruta-b`). `loaddata` se detiene sin aplicar nada. Restaura entonces en una base nueva.
 - Si otro recurso ya abre un curso, `load_courses --relink` no vincula el recurso histórico de ese curso. Asígnalo en el administrador.
 - Las comprobaciones de la dirección oficial en las operaciones en lote hechas desde código (`update()`) no cubren una ruta creada al mismo tiempo desde otra conexión. Las pantallas y los comandos no hacen esas operaciones.
 

@@ -1103,3 +1103,51 @@ Revisión pedida por Carlos para no dejar pendientes:
 - **Siguen como estaban, sin necesidad de cambio:**
   - `ResourceVersion` y `Lesson` se registran sin configuración propia, porque la ficha no los pide.
   - El Evaluador ve `Audit` en modo lectura.
+
+
+## T05 — Correcciones de la séptima revisión de Codex (24-11-2026)
+- Fecha: 2026-11-24
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T05-cursos-al-modelo`, en la carpeta de Carlos. Commit de código `6ee00de`. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+Hallazgos de `revision-codex-original-7.md` (Carlos aprobó corregir los 8):
+- **1 (Alta, en T12 y T06): volver a la versión anterior del programa.** README, «Volver a una versión anterior del programa». Antes de actualizar se hace una copia completa de la base (archivo de SQLite o `pg_dump -Fc`), y para volver atrás se restaura con el programa anterior. Revertir migraciones no basta: la marca de lección oficial puede quedar en la base. Se comprueba en T12.
+- **2 (Media): devolver una lección a su curso daba error 500.** `Lesson.save()` quita la marca a una lección que pasa a otra ruta. `load_courses` repone la oficial, y la lección movida vuelve como lección propia sin chocar.
+- **3 (Media): aviso de posición ocupada.** Distingue «otra lección oficial, «…», que se movió ahí» de «una lección propia, «…»». Aclara que el resto del curso sí se cargó.
+- **4 (Media): qué es una lección idéntica.** El README explica que se compara el texto sin formato y que `--force` devolvería el formato oficial. La ayuda del comando ya describía la marca.
+- **5 (Media): restaurar con la posición máxima.** `restore_lesson` usa el primer número libre cuando el final está en el máximo del campo.
+- **7 (Baja): límite de direcciones cruzadas.** Descrito para cualquier dirección que otra ruta ocupe al volver a migrar.
+- **8 (Baja): restos en las pruebas.**
+  - Ayudante `hub/tests/temp.py`: las carpetas temporales se borran al terminar cada prueba. Antes y después de la suite, el número de carpetas temporales es el mismo (2840).
+  - Se quitó `test_codex_review_3.LoadCoursesErrors`, igual a la de `test_course_identity`.
+- **Ficha de T05.** Notas en los pasos 4 y 7 (marca de lección oficial y veto). El criterio del `grep` y la prueba del recurso histórico se ajustan al veto.
+- El hallazgo 6 (archivos Markdown con firma UTF-8) es de T12.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `No changes detected` · `Ran 153 tests in 172.560s` · `OK`. PostgreSQL 16.16: `No changes detected` · `Ran 153 tests in 183.342s` · `OK`. `check` sin incidencias en ambos.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `68 files already formatted`.
+- **Pruebas nuevas** (`hub/tests/test_codex_review_7.py`, 4). Con el código anterior: `FAILED (failures=3, errors=1)`.
+
+## T12 — Correcciones de la séptima revisión de Codex (24-11-2026)
+- Fecha: 2026-11-24
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T12-paginas-del-menu`, en `CICC-local\original\T12`. Merge de T05 con las correcciones de T12: `71584a8`. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+- **Correcciones de T05.** Llegan con el merge `71584a8`. En `hub/models.py`, `Lesson.save()` junta `clean_lesson()` (T12) con `drop_official_key_when_moved()` (T05).
+- **Hallazgo 1 (Alta): volver a la versión anterior del programa.** La guía está en el README, en la sección «Volver a una versión anterior del programa». Se comprobó con una copia de la demo:
+  - Con el programa anterior (`30415f2`), la base llega a 0009 y se hace la copia completa.
+  - Con el programa nuevo, se ejecuta `migrate`.
+  - **Solo revertir** (`migrate hub 0009`) y volver al programa anterior: crear una lección falla (`NOT NULL constraint failed: hub_lesson.official_key`), como encontró Codex.
+  - **Restaurar la copia completa** con el programa anterior: la lección se crea, y quedan 26 páginas y todas las lecciones.
+- **Hallazgo 6 (Baja): Markdown con firma UTF-8.** `parse_page_file` lee con `utf-8-sig`. El título se reconoce con firma y sin ella (`test_codex_review_7_pages.py`).
+- **Hallazgo 8: restos en las pruebas.** `test_section_pages` usa `temp_folder`.
+- **`ARQUITECTURA-OBJETIVO.md`.** `SectionPage` y `SectionBlock` están en la tabla de modelos.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `No changes detected` · `Ran 187 tests in 211.156s` · `OK`. PostgreSQL 16.16: `No changes detected` · `Ran 187 tests in 250.026s` · `OK`. `check` sin incidencias en ambos.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `76 files already formatted`.
+- La huella del `demo.sqlite3` de Carlos no cambió (`333f4566e875e09a`).

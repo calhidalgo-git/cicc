@@ -143,6 +143,7 @@ Cada decisión es definitiva para los implementadores. Carlos puede vetar las ma
 |---|---|---|
 | `LearningPath` | + `slug` (único), + `intro_html` (opcional), + `position` (orden en listados) | T05 |
 | `Lesson` | + `body_html` (opcional); restricción única (`path`, `position`); + `official_key` (marca de lección oficial, solo la escribe `load_courses`; única en cada ruta; decisión de Carlos del 24-11-2026) | T05 |
+| `SectionPage`, `SectionBlock` | Nuevos: la teoría de cada opción del menú. Una página por `slug` de `NAV` (clave natural en el respaldo), con introducción, origen, fecha y autor; bloques por página y posición. HTML saneado y texto plano para la búsqueda | T12 |
 | `Attempt` | + `snapshot` (JSON); restricción única (`user`, `assessment`) cuando `finished=False`; permiso `view_reports` | T06, T07 |
 | `Assessment` | + `max_attempts` (entero, 0 = sin límite) | T07 |
 | `Audit` | permiso `export_backup`; índice por `created` | T06 |

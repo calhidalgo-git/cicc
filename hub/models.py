@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
-from django.db import models, transaction
+from django.db import connection, models, transaction
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils.text import slugify
@@ -238,7 +238,21 @@ class Lesson(models.Model):
 
     def save(self, *args, **kwargs):
         clean_lesson(self)
+        self.drop_official_key_when_moved()
+
         super().save(*args, **kwargs)
+
+    def drop_official_key_when_moved(self):
+        """Una lección que pasa a otra ruta deja de ser la lección oficial de su curso.
+
+        Así load_courses puede reponer la oficial en el curso y la lección se puede devolver
+        después sin chocar con la marca de la repuesta (séptima revisión de Codex, 24-11-2026).
+        """
+        if not self.official_key or self.pk is None:
+            return
+        stored = Lesson.objects.filter(pk=self.pk).values_list('path_id', flat=True).first()
+        if stored is not None and stored != self.path_id:
+            self.official_key = ''
 
     def __str__(self):
         return self.title
@@ -483,4 +497,13 @@ def restore_lesson(sender, instance, raw=False, **kwargs):
     others = Lesson.objects.filter(path_id=instance.path_id).exclude(pk=instance.pk)
     if others.filter(position=instance.position).exists():
         last = others.aggregate(models.Max('position'))['position__max'] or 0
-        instance.position = last + 1
+        top = connection.ops.integer_field_range('PositiveIntegerField')[1]
+        if last < top:
+            instance.position = last + 1
+            return
+        # El final está en el máximo del campo: se usa el primer número libre (séptima
+        # revisión de Codex, 24-11-2026).
+        taken = set(others.values_list('position', flat=True))
+        instance.position = next(
+            number for number in range(1, len(taken) + 2) if number not in taken
+        )

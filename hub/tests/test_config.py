@@ -4,7 +4,6 @@ import os
 import secrets
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 from unittest import mock
 
@@ -14,6 +13,8 @@ from django.core.exceptions import ImproperlyConfigured
 from django.test import SimpleTestCase, TestCase, override_settings
 
 from config.env import env_bool, env_list, env_required, load_env_file
+
+from .temp import temp_folder
 
 # Variables que influyen en la configuración; los subprocesos arrancan sin ellas.
 CONFIG_PREFIXES = ('CICC_', 'DJANGO_', 'PG', 'EMAIL_')
@@ -70,7 +71,7 @@ def clean_environ(**extra):
 
 class EnvFile(SimpleTestCase):
     def write(self, text):
-        folder = Path(tempfile.mkdtemp(prefix='cicc-env-'))
+        folder = temp_folder(self, prefix='cicc-env-')
         path = folder / '.env'
         path.write_text(text, encoding='utf-8')
         return path
@@ -104,7 +105,7 @@ class EnvFile(SimpleTestCase):
             self.assertEqual(os.environ['CICC_PRUEBA_A'], 'del-sistema')
 
     def test_missing_file_is_ignored(self):
-        self.assertEqual(load_env_file(Path(tempfile.mkdtemp()) / 'no-existe.env'), [])
+        self.assertEqual(load_env_file(temp_folder(self) / 'no-existe.env'), [])
 
 
 class EnvHelpers(SimpleTestCase):
@@ -356,7 +357,7 @@ class SettingsByEnvironment(SimpleTestCase):
         self.assertEqual(result.stdout.strip(), '5432')
 
     def test_settings_load_a_real_env_file(self):
-        folder = Path(tempfile.mkdtemp(prefix='cicc-envfile-'))
+        folder = temp_folder(self, prefix='cicc-envfile-')
         env_file = folder / '.env'
         env_file.write_text(
             '\n'.join(f'{key}={value}' for key, value in PRODUCTION.items()), encoding='utf-8'
@@ -366,7 +367,7 @@ class SettingsByEnvironment(SimpleTestCase):
         self.assertEqual(values['ALLOWED_HOSTS'], ['cicc.ejemplo.local'])
 
     def test_system_variables_win_over_the_env_file(self):
-        folder = Path(tempfile.mkdtemp(prefix='cicc-envfile-'))
+        folder = temp_folder(self, prefix='cicc-envfile-')
         env_file = folder / '.env'
         env_file.write_text(
             '\n'.join(f'{key}={value}' for key, value in PRODUCTION.items()), encoding='utf-8'

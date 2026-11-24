@@ -956,3 +956,68 @@ Ninguna.
   - Migración completa y `bootstrap_roles`: 6 rutas, 39 lecciones, 26 páginas y 0, 14, 8 y 58 permisos.
   - `migrate hub 0009`: catálogo sin los dos permisos.
   - `migrate hub 0003` y `migrate`, `--relink` (3), `--force` (26) y `bootstrap_roles`: otra vez 0, 14, 8 y 58, y los mismos datos.
+
+## Decisión de Carlos — 24-11-2026 (tras la sexta revisión de Codex)
+- **Opción 1: dejar de adivinar.** Tras `revision-codex-original-6.md`, Carlos eligió cambiar el diseño en lugar de seguir con parches:
+  - al revertir, la 0005 ya no reconoce ningún curso;
+  - `--force` solo reescribe lecciones con marca de «lección oficial».
+- Se corrigen también los tres hallazgos sencillos: reutilizar un puesto en el mismo guardado, la posición máxima y el aviso de T06 en español.
+
+## T05 — Correcciones de la sexta revisión de Codex: no adivinar (24-11-2026)
+- Fecha: 2026-11-24
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T05-cursos-al-modelo`, en la carpeta de Carlos. Commit de código `651399e`. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+- **Alta: un ejercicio completado se reescribía.** Las variantes que encontró Codex (mismo título que una semana desplazada, semana con título y texto cambiados) venían de reconocer las lecciones por posición, título o texto.
+  - Nuevo campo `Lesson.official_key` (migración 0008), con valor «<slug>:<posición oficial>». Solo lo escribe `load_courses` al crear la lección, no se edita en formularios y es único en cada ruta.
+  - `--force` reescribe solo lecciones con marca, estén donde estén.
+  - Una lección oficial que falta se crea en su posición si está libre. Si la ocupa una lección propia, esa lección se conserva y el comando avisa.
+- **Lecciones sin marca.** Son las de instalaciones y respaldos anteriores. La 0008 y `load_courses` marcan solo las idénticas a la oficial (posición, título y texto). Reescribir una lección idéntica no cambia nada, y un ejercicio con texto propio nunca lo es. Las editadas quedan sin marca, y `--force` no las toca.
+- **Alta: la copia heredaba la dirección al revertir.** La 0005 ya no reconoce ningún curso: todas las rutas reciben un slug propio. La dirección vuelve restaurando el respaldo hecho antes de revertir. Se probó también con el curso reordenado (caso de la sexta revisión).
+- **Media: quitar una lección y reutilizar su puesto daba error 500.** `save_formset()` lleva también a posiciones libres las lecciones marcadas para quitar.
+- **Baja: posición máxima.** Las posiciones temporales son los números libres más bajos, no «máximo + 1», así que siempre caben en el campo.
+- **Baja: práctica de repaso que impedía recuperar una semana.** Ya no hay detección de lecciones desplazadas: la semana que falta se crea si su posición está libre.
+- **README.** La guía de cursos está reescrita: marca de lección oficial, `--force`, revertir y restaurar.
+
+### Desviaciones respecto a la tarea
+- **Migración 0005 simplificada** y **migración nueva 0008**. Las bases que ya aplicaron la 0005 no cambian.
+- **Pruebas existentes ajustadas al diseño nuevo:**
+  - `test_migrations.test_reapplying_after_a_revert_leaves_every_path_local` (antes «…recognises_the_official_course») espera ahora que el curso intacto quede local.
+  - `test_codex_review_4` espera el aviso de posición ocupada en lugar del de lecciones desplazadas.
+  - `test_codex_review_5.ForceKeepsAnUnrecognisedLesson` usa lecciones con marca.
+  - Las comprobaciones de textos y avances no cambiaron.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 151 tests in 100.523s` · `OK`.
+- PostgreSQL 16.16 local (base temporal borrada): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 151 tests in 117.809s` · `OK`.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `66 files already formatted`.
+- **Pruebas nuevas** (`hub/tests/test_codex_review_6.py`, 9). Con el código anterior, 6 de las 8 primeras fallan: `FAILED (failures=2, errors=4)`. La novena, del respaldo sin marcas, se agregó después.
+- **Copia de la demo de Carlos** (worktree temporal borrado; huella `333f4566e875e09a` sin cambios):
+  - Al migrar desde 0007, las 23 lecciones oficiales quedan marcadas. `load_courses` → 0. `--force` → 26.
+  - Respaldo, `migrate hub 0003` y `migrate`: 6 rutas, ninguna oficial, 0 marcas.
+  - `loaddata` del respaldo en la misma base: `Installed 97 object(s)`, los tres cursos en sus direcciones (4, 5 y 6), 23 marcas, 23 lecciones con HTML y 3 vínculos. `load_courses` → 0.
+
+## T12 — Correcciones de la sexta revisión de Codex (24-11-2026)
+- Fecha: 2026-11-24
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T12-paginas-del-menu`, en `CICC-local\original\T12`. Merge de T05: `2d2f92c`. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+- **Correcciones de T05.** Llegan con el merge `2d2f92c`: marca de lección oficial, 0005 sin reconocimiento al revertir y posiciones del formulario de la ruta. Ver la entrada de T05 del mismo día.
+- **Migración de unión `0010_merge_lesson_official_key`.** La 0008 nueva de T05 y las 0008 y 0009 de T12 salen de 0007. La unión no tiene operaciones. Una base con T12 ya aplicada solo añade la 0008 de T05.
+- **Conflictos.** En `hub/admin.py`, T05 ya no usa `Max` y se conserva `Count` de T12. En el README se conservaron el párrafo de las páginas de sección y la guía nueva de T05.
+
+### Desviaciones respecto a la tarea
+- La migración de unión, necesaria porque T05 y T12 agregaron migraciones en paralelo.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 184 tests in 157.697s` · `OK`.
+- PostgreSQL 16.16 local (base temporal borrada): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 184 tests in 198.733s` · `OK`.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `73 files already formatted`.
+- **Actualización de una base con T12 anterior** (copia de la demo, worktrees temporales borrados; huella `333f4566e875e09a` sin cambios):
+  - Con `30415f2`, la copia quedó en 0009.
+  - Con la versión nueva, `migrate` aplicó `0008_lesson_official_key` y `0010_merge_lesson_official_key`.
+  - Resultado: 26 páginas, 6 rutas y 23 lecciones oficiales marcadas.

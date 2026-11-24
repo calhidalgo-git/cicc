@@ -217,11 +217,23 @@ class Lesson(models.Model):
         blank=True, help_text='Contenido en HTML. Se limita a las etiquetas permitidas al guardar.'
     )
     position = models.PositiveIntegerField()
+    # Marca de lección oficial: «<slug del curso>:<posición oficial>». Solo la escribe
+    # load_courses al crear la lección, y load_courses --force solo reescribe lecciones con marca.
+    # Una lección propia nunca la tiene, esté en la posición que esté (decisión de Carlos,
+    # 24-11-2026, tras la sexta revisión de Codex). No se edita en los formularios.
+    official_key = models.CharField(max_length=220, blank=True, default='', editable=False)
 
     class Meta:
         ordering = ['position']
+        verbose_name = 'lección'
+        verbose_name_plural = 'lecciones'
         constraints = [
-            models.UniqueConstraint(fields=['path', 'position'], name='unique_lesson_position')
+            models.UniqueConstraint(fields=['path', 'position'], name='unique_lesson_position'),
+            models.UniqueConstraint(
+                fields=['path', 'official_key'],
+                condition=~models.Q(official_key=''),
+                name='unique_lesson_official_key',
+            ),
         ]
 
     def save(self, *args, **kwargs):
@@ -240,7 +252,14 @@ class Progress(models.Model):
     lesson = models.ForeignKey(Lesson, on_delete=models.PROTECT)
 
     class Meta:
+        # El aviso del administrador al proteger una lección se lee en español (sexta revisión
+        # de Codex, 24-11-2026): «avance: ana completó «Semana 1 …»».
+        verbose_name = 'avance'
+        verbose_name_plural = 'avances'
         constraints = [models.UniqueConstraint(fields=['user', 'lesson'], name='unique_progress')]
+
+    def __str__(self):
+        return f'{self.user} completó «{self.lesson}»'
 
 
 class Assessment(models.Model):

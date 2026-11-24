@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.db.models import Count, Max
+from django.db.models import Count
 
 from .models import (
     Assessment,
@@ -51,23 +51,30 @@ class LearningPathAdmin(admin.ModelAdmin):
 
         La posición es única en cada ruta y la base la comprueba fila a fila. Si dos lecciones
         intercambian posiciones, la primera chocaría con la segunda todavía en su sitio. Antes de
-        guardar, las lecciones que cambian de posición pasan a posiciones libres por encima de
-        todas las demás; después cada una recibe la suya.
+        guardar, las lecciones que cambian de posición, y las que se van a quitar, pasan a
+        posiciones libres; después cada una recibe la suya o se borra.
+
+        Sexta revisión de Codex (24-11-2026): las posiciones libres son los números más bajos que
+        no usa ninguna lección, ni antes ni después del guardado, así que siempre caben en el rango
+        del campo. Quitar una lección y dar su puesto a otra en el mismo guardado también funciona.
         """
         if formset.model is Lesson:
             moving = [
                 f.instance.pk
                 for f in formset.forms
                 if f.instance.pk
-                and 'position' in f.changed_data
-                and not formset._should_delete_form(f)
+                and ('position' in f.changed_data or formset._should_delete_form(f))
             ]
             if moving:
-                finals = [f.cleaned_data.get('position') or 0 for f in formset.forms]
-                stored = Lesson.objects.filter(path=form.instance).aggregate(top=Max('position'))
-                base = max([stored['top'] or 0, *finals])
-                for offset, pk in enumerate(moving, 1):
-                    Lesson.objects.filter(pk=pk).update(position=base + offset)
+                finals = {f.cleaned_data.get('position') for f in formset.forms}
+                stored = set(
+                    Lesson.objects.filter(path=form.instance).values_list('position', flat=True)
+                )
+                busy = finals | stored
+                free = (number for number in range(1, len(busy) + len(moving) + 2))
+                free = (number for number in free if number not in busy)
+                for pk, number in zip(moving, free, strict=False):
+                    Lesson.objects.filter(pk=pk).update(position=number)
         super().save_formset(request, form, formset, change)
 
 

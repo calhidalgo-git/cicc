@@ -107,35 +107,39 @@ def link_legacy_resources(path, titles, summary):
             linked = True
 
 
-def shifted_lessons(path, course):
-    """Posiciones de la ruta donde hay una lección oficial fuera de su lugar.
+def official_key(course, item):
+    """Marca de una lección oficial: «<slug del curso>:<posición oficial>»."""
+    return f'{course["slug"]}:{item["position"]}'
 
-    Una base que aplicó la migración 0005 anterior al 24-11-2026 pudo dar la dirección oficial a
-    una ruta con lecciones propias antes de las oficiales y renumerarlas. Ahí la lección oficial
-    «Semana 1» quedó, por ejemplo, en la posición 3, y en la 1 hay un ejercicio propio.
-    Reescribir por posición borraría el ejercicio (cuarta revisión de Codex, 24-11-2026).
 
-    Quinta revisión de Codex (24-11-2026):
-    - La lección oficial se reconoce por su título **o por su texto**: con el título cambiado, la
-      semana 6 en la posición 7 sigue siendo la semana 6, y en la 6 puede haber un ejercicio.
-    - Una lección que repite el título o el texto de otra oficial no cuenta si esa oficial ya está
-      en su lugar: es una práctica propia.
+def mark_intact_lessons(path, course):
+    """Marca las lecciones sin marca que son idénticas a una oficial: misma posición, mismo título
+    y mismo texto, y ninguna otra lección de la ruta con esa marca.
+
+    Sirve para las instalaciones y los respaldos anteriores a la marca (24-11-2026). No adivina:
+    reescribir una lección idéntica no cambia nada, y un ejercicio con texto propio nunca lo es.
+    Devuelve cuántas marcó.
     """
-    places = {}
+    lessons = list(path.lessons.all())
+    used = {lesson.official_key for lesson in lessons if lesson.official_key}
+    marked = 0
     for item in course['lessons']:
+        key = official_key(course, item)
+        if key in used:
+            continue
         text = html_to_text(sanitize_html((course['dir'] / item['file']).read_text('utf-8')))
-        places[('title', item['title'])] = item['position']
-        places[('body', text)] = item['position']
-    lessons = list(path.lessons.values_list('position', 'title', 'body'))
-    in_place = {(position, 'title', title) for position, title, _ in lessons}
-    in_place |= {(position, 'body', body) for position, _, body in lessons}
-    shifted = set()
-    for position, title, body in lessons:
-        for key in (('title', title), ('body', body)):
-            home = places.get(key)
-            if home is not None and home != position and (home, *key) not in in_place:
-                shifted.add(position)
-    return sorted(shifted)
+        matches = [
+            lesson
+            for lesson in lessons
+            if not lesson.official_key
+            and (lesson.position, lesson.title, lesson.body)
+            == (item['position'], item['title'], text)
+        ]
+        if len(matches) == 1:
+            matches[0].official_key = key
+            matches[0].save(update_fields=['official_key'])
+            marked += 1
+    return marked
 
 
 def empty_summary():
@@ -145,7 +149,7 @@ def empty_summary():
         'updated': 0,
         'linked': 0,
         'ambiguous': [],
-        'protected': [],
+        'occupied': [],
     }
 
 
@@ -172,22 +176,22 @@ def load_courses(force=False):
     """Crea las rutas y lecciones que falten; con ``force`` también reescribe las existentes.
 
     Identifica las rutas por ``slug`` (reservado para los cursos oficiales: una ruta local con
-    el mismo nombre tiene otro slug y no se toca) y las lecciones por ``position``.
+    el mismo nombre tiene otro slug y no se toca).
+
+    Las lecciones oficiales se identifican por su marca ``official_key``, nunca por su posición ni
+    por su título o su texto (decisión de Carlos, 24-11-2026, tras la sexta revisión de Codex):
+    - ``--force`` solo reescribe lecciones con marca, estén donde estén. Una lección propia (sin
+      marca) nunca se reescribe.
+    - Una lección oficial que falta se crea en su posición, con su marca, si esa posición está
+      libre. Si la ocupa una lección propia, no se crea y queda en ``summary['occupied']``.
 
     Al crear un curso, o con ``force``, vincula los recursos históricos que lo abrían.
-
-    Si una lección oficial está fuera de su posición (``shifted_lessons``), las lecciones de esa
-    ruta no se reescriben ni se crean: no se sabe qué lección es cuál. La ruta queda en
-    ``summary['protected']`` para ordenarla en el administrador.
     """
     from hub.models import LearningPath, Lesson
 
     summary = empty_summary()
     for course in read_courses():
         path = LearningPath.objects.filter(slug=course['slug']).first()
-        if path is not None and shifted_lessons(path, course):
-            summary['protected'].append(course['title'])
-            continue
         fields = {
             'title': course['title'],
             'area': course['area'],
@@ -208,14 +212,27 @@ def load_courses(force=False):
             summary['updated'] += 1
         if created or force:
             link_legacy_resources(path, course.get('legacy_resource_titles', []), summary)
-        existing = {lesson.position: lesson for lesson in path.lessons.all()}
+        if not created:
+            mark_intact_lessons(path, course)
+        lessons = list(path.lessons.all())
+        by_key = {lesson.official_key: lesson for lesson in lessons if lesson.official_key}
+        taken = {lesson.position for lesson in lessons}
         for item in course['lessons']:
+            key = official_key(course, item)
             body = (course['dir'] / item['file']).read_text(encoding='utf-8')
-            lesson = existing.get(item['position'])
+            lesson = by_key.get(key)
             if lesson is None:
+                if item['position'] in taken:
+                    summary['occupied'].append((course['title'], item['position'], item['title']))
+                    continue
                 Lesson.objects.create(
-                    path=path, position=item['position'], title=item['title'], body_html=body
+                    path=path,
+                    position=item['position'],
+                    title=item['title'],
+                    body_html=body,
+                    official_key=key,
                 )
+                taken.add(item['position'])
                 summary['lessons'] += 1
             elif force:
                 lesson.title = item['title']

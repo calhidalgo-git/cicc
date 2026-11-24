@@ -57,7 +57,7 @@ Asigna los roles a cada persona desde `/admin/`, en Usuarios. El primer administ
 
 `seed_demo` se niega a correr sin `CICC_DEMO=1`, porque crea cuentas de demostración con una contraseña conocida.
 
-**Actualizar desde una versión anterior a T06.** Al migrar, todo grupo que podía ver la auditoría recibe también el permiso de reportes, así que conserva el acceso. El grupo `Administrador` recibe el permiso de respaldo. Otros grupos que abrían Respaldos dejan de hacerlo. Después ejecuta `bootstrap_roles` para dejar los cuatro roles con la lista completa. Si vuelves a una versión anterior (`migrate hub 0009`), los dos permisos nuevos se borran, también de las cuentas a las que se dieron directamente. Los intentos y la auditoría son de solo lectura en el administrador, y solo un superusuario los borra. El avance de las personas no lo borra nadie.
+**Actualizar desde una versión anterior a T06.** Al migrar, todo grupo que podía ver la auditoría recibe también el permiso de reportes, así que conserva el acceso. El grupo `Administrador` recibe el permiso de respaldo. Otros grupos que abrían Respaldos dejan de hacerlo. Después ejecuta `bootstrap_roles` para dejar los cuatro roles con la lista completa. Si vuelves a una versión anterior (`migrate hub 0009`), los dos permisos nuevos se borran, también de las cuentas a las que se dieron directamente. Los intentos y la auditoría son de solo lectura en el administrador, y solo un superusuario los borra. El avance de las personas no lo borra nadie, tampoco al quitar su lección desde el formulario de la ruta ni al borrar la lección o la ruta: el administrador avisa de que la lección tiene avances y no borra nada.
 
 | Variable | Uso |
 |---|---|

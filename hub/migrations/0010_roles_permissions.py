@@ -17,8 +17,10 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('hub', '0009_section_pages_data'),
+        # Sin otras dependencias de auth: una base que aplicó la 0010 original (que no las tenía)
+        # debe poder seguir actualizándose (quinta revisión de Codex, 24-11-2026). El paso de
+        # reversión solo usa Permission, que existe desde la primera migración de auth.
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('auth', '0012_alter_user_first_name_max_length'),
     ]
 
     operations = [

@@ -234,7 +234,10 @@ class Lesson(models.Model):
 
 class Progress(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
+    # Nadie borra un avance (decisión de Carlos, 24-11-2026), tampoco al quitar su lección o su
+    # ruta: el administrador muestra el aviso de objetos protegidos y no borra nada (quinta
+    # revisión de Codex, 24-11-2026).
+    lesson = models.ForeignKey(Lesson, on_delete=models.PROTECT)
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['user', 'lesson'], name='unique_progress')]

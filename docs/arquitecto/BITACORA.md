@@ -1151,3 +1151,22 @@ Hallazgos de `revision-codex-original-7.md` (Carlos aprobó corregir los 8):
 - SQLite (`CICC_DEMO=1`): `No changes detected` · `Ran 187 tests in 211.156s` · `OK`. PostgreSQL 16.16: `No changes detected` · `Ran 187 tests in 250.026s` · `OK`. `check` sin incidencias en ambos.
 - `ruff check .` → `All checks passed!` · `ruff format --check .` → `76 files already formatted`.
 - La huella del `demo.sqlite3` de Carlos no cambió (`333f4566e875e09a`).
+
+## T06 — Correcciones de la séptima revisión de Codex (24-11-2026)
+- Fecha: 2026-11-24
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T06-roles-y-permisos`, en `CICC-local\original\T06`. Merge de T12: `13f8da9`. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+- **Correcciones de T05 y T12.** Llegan con el merge `13f8da9`:
+  - de T05: traslado de lecciones, aviso de posición ocupada, restauración en el máximo, guía para volver a una versión anterior y carpetas temporales de las pruebas;
+  - de T12: Markdown con firma UTF-8.
+- **Conflictos.** Solo en las importaciones de `test_codex_review_3`, `test_course_identity` y `test_section_pages`. Se conservaron el ayudante `seed_demo` de T06 y `temp_folder` de T05.
+- **README (pendiente señalado por Codex).** La fila del Editor dice que agrega, cambia y quita bloques de teoría, y que las páginas del menú no se crean ni se borran.
+- **Hallazgo 8, prueba duplicada en T06.** Ya estaba corregido en `58692e0`.
+- **Hallazgo 1, volver a una versión anterior.** La guía del README vale también para T06. Antes de actualizar se hace una copia completa de la base, y para volver se restaura con el programa anterior. El procedimiento se comprobó en T12.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `No changes detected` · `Ran 215 tests in 245.864s` · `OK`. PostgreSQL 16.16: `No changes detected` · `Ran 215 tests in 241.792s` · `OK`. `check` sin incidencias en ambos.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `83 files already formatted`.

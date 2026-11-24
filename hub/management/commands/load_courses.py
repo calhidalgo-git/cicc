@@ -46,3 +46,11 @@ class Command(BaseCommand):
                     'Elige en el administrador cuál abre su curso.'
                 )
             )
+        for title in summary['protected']:
+            self.stdout.write(
+                self.style.WARNING(
+                    f'«{title}» tiene lecciones oficiales fuera de su posición y quizá lecciones '
+                    'propias antes de ellas: no se reescribió ni se creó ninguna lección. '
+                    'Ordénalas en el administrador y vuelve a ejecutar el comando.'
+                )
+            )

@@ -692,3 +692,50 @@ Ninguna nueva.
 
 ### Observaciones
 - La restauración se probó dentro de la suite en los dos motores, no con dos bases reales separadas como hizo Codex.
+
+## Decisiones de Carlos — 24-11-2026
+Tras la cuarta revisión de Codex (`revision-codex-original-4.md`):
+- **D4: veto registrado.** Carlos confirmó que su veto del 21-11-2026 se anote en D4. Queda en `ARQUITECTURA-OBJETIVO.md`, bajo D4. Se cierra la pregunta abierta de T05.
+- **T06: el avance es de solo lectura para todos.** Nadie borra un avance (`Progress`) desde el administrador, tampoco el superusuario. Se corrige en T06.
+- **T06: el Editor sigue editando la teoría de las páginas del menú.** Conserva `view_sectionpage` y `change_sectionpage`. Se anota en la matriz de T06 y en D11.
+
+## T05 — Correcciones de la cuarta revisión de Codex (24-11-2026)
+- Fecha: 2026-11-24
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T05-cursos-al-modelo`, en la carpeta de Carlos. Commit de código `4d964f8`. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+Hallazgos de `revision-codex-original-4.md` que tocan T05:
+- **Alta: una base ya migrada perdía ejercicios con `--force`.** La 0005 anterior pudo dar la dirección oficial a una ruta con ejercicios en la posición 0 y renumerarla: los ejercicios quedaron en 1 y 2, y las lecciones oficiales en 3 a 8.
+  - Ahora `load_courses` comprueba cada curso antes de tocarlo (`shifted_lessons`). Si una lección oficial, por su título, está fuera de su posición, no reescribe ni crea ninguna lección de ese curso, ni siquiera con `--force`.
+  - El comando avisa: «“…” tiene lecciones oficiales fuera de su posición…: ordénalas en el administrador y vuelve a ejecutar el comando». Una vez ordenadas, `--force` vuelve a funcionar y los ejercicios, ya después de la última lección oficial, no se tocan.
+- **Alta: un curso editado cedía su dirección a la copia.** Con la copia creada antes (seis lecciones intactas y una séptima) y una lección oficial editada, solo la copia cumplía la regla.
+  - Ahora, si otra ruta del mismo título conserva alguna lección oficial intacta, ninguna toma la dirección. Una copia con todos sus textos propios sigue sin impedir que se reconozca el curso (las pruebas de las revisiones anteriores no cambiaron).
+- **Alta: la recuperación fallaba según el orden de creación.** El respaldo listaba las rutas por posición; al restaurar, la copia pedía `fundamentos-qa-2` mientras el curso todavía la ocupaba.
+  - Ahora `backup_json()` guarda cada modelo por número interno, el mismo orden en que la migración reparte las direcciones locales. Al restaurar en la misma base, cada dirección se libera antes de que otra ruta la recupere.
+  - Se probó en los dos órdenes, con y sin edición: el curso vuelve a «1 de 6» con su avance y su edición.
+  - El README da las dos formas comprobadas: en la misma base justo después de migrar, o en una base nueva (`migrate`, cuentas, `loaddata`), siempre antes de `load_courses`. Un respaldo anterior al 24-11-2026 conviene restaurarlo en una base nueva.
+- **Media: una expresión podía dar una dirección reservada.** `LearningPathQuerySet.update()` comprueba ahora el slug que queda guardado, dentro de una transacción. Si una ruta cambia una dirección oficial o toma una, se deshace todo el cambio. Los valores literales se siguen comprobando antes.
+- **Media: un recurso histórico renombrado.** Si algún recurso ya abre el curso, `link_legacy_resources` no vincula otro. El aviso de títulos repetidos se mantiene.
+- **Baja: `bulk_update` con un iterador.** Se convierte en lista antes de comprobarlo.
+- **D4.** Se anota el veto de Carlos (decisión del 21-11-2026) en `ARQUITECTURA-OBJETIVO.md`.
+
+### Desviaciones respecto a la tarea
+- **Migración 0005 modificada otra vez.** Solo cambia su lógica de datos. Las bases que ya la aplicaron no se ven afectadas; para ellas está la protección de `load_courses`.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 136 tests in 132.655s` · `OK`.
+- PostgreSQL 16.16 local (modo producción, clave aleatoria, base temporal `cicc_rev4_t05` borrada al terminar): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 136 tests in 133.337s` · `OK`.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `64 files already formatted`.
+- **Pruebas nuevas** (`hub/tests/test_codex_review_4.py`, 10). Con el código anterior: `FAILED (failures=6, errors=1)`. Las otras tres comprueban que lo que ya funcionaba sigue funcionando.
+- **Copia de la demo de Carlos** (worktree temporal en `CICC-local\tmp-rev4-t05`, borrado al terminar; el `demo.sqlite3` conservó su huella `333f4566e875e09a`):
+  - `migrate hub 0003` y `migrate`: los tres cursos recuperaron su dirección con los números 4, 5 y 6.
+  - `load_courses` → 0 en todo. `--relink` → `recursos vinculados: 3`. `--force` → `reescritas: 26`.
+  - Quedaron 6 rutas, 39 lecciones, 23 con HTML y 3 vínculos, como al principio.
+
+### Preguntas para el arquitecto
+- Ninguna. La de D4 queda resuelta.
+
+### Observaciones
+- PostgreSQL local se apagó una vez durante la verificación porque faltaba `datos\postmaster.pid`. Se volvió a arrancar con `Iniciar-PostgreSQL.ps1` y las pruebas se repitieron.

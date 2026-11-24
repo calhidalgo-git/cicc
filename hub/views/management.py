@@ -103,10 +103,15 @@ RELATED = {
 
 
 def backup_json():
-    """Respaldo de contenido en JSON, con el formato de ``dumpdata`` que lee ``loaddata``."""
+    """Respaldo de contenido en JSON, con el formato de ``dumpdata`` que lee ``loaddata``.
+
+    Cada modelo va por número interno. Tras revertir y volver a migrar, las rutas locales reciben
+    las direcciones en ese orden; restaurarlas en el mismo orden libera cada dirección antes de
+    que otra ruta la recupere (cuarta revisión de Codex, 24-11-2026).
+    """
     objects = []
     for model in BACKUP_MODELS:
-        queryset = model.objects.all()
+        queryset = model.objects.order_by('pk')
         if model in RELATED:
             queryset = queryset.select_related(*RELATED[model])
         objects.extend(

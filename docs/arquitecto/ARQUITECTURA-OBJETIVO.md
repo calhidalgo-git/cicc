@@ -111,6 +111,8 @@ Cada decisión es definitiva para los implementadores. Carlos puede vetar las ma
 
 **D4. ⚑ Los tres cursos pasan a `LearningPath` y `Lesson`.** Fundamentos QA, QA Avanzado y Certificación de un Requerimiento dejan de ser plantillas y se cargan a la base con `load_courses`. Ganan progreso, búsqueda y edición en el administrador. Consecuencia visible: los recursos "Guía de pruebas batch y JCL", "Checklist de pruebas de API REST" e "Introducción a DB2 para QA" vuelven a mostrarse como lo que son, y los cursos se abren desde Rutas de aprendizaje y desde el dashboard.
 
+  **Veto de Carlos (21-11-2026, registrado el 24-11-2026).** La consecuencia visible no se aplica. Los tres recursos siguen viéndose como antes de T05: con el nombre de su curso y abriendo su teoría. El vínculo se guarda en `Resource.learning_path` (migración 0007) y no depende del título (D6); se edita en el administrador. Los cursos también se abren desde Rutas de aprendizaje y desde el dashboard.
+
 **D5. Contenido enriquecido como HTML saneado.** `Lesson.body_html` y `LearningPath.intro_html` guardan HTML limitado a una lista de etiquetas permitidas, saneado con `nh3` al guardar. `Lesson.body` conserva el texto plano (derivado del HTML cuando existe) y es lo único que usa la búsqueda.
 
 **D6. Ninguna lógica depende de títulos.** La navegación usa claves estables (`slug`, `pk`, `kind`). Se eliminan las comparaciones de título en vistas y plantillas.

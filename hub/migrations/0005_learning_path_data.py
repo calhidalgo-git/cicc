@@ -21,7 +21,16 @@ Tercera revisión de Codex (23-11-2026):
   cambiaría los números al renumerar y --force la reescribiría con el texto oficial.
 - Si dos rutas cumplen la regla, no se puede saber cuál es el curso: todas quedan locales y
   load_courses crea el curso aparte. Así un respaldo hecho antes de revertir se puede restaurar.
+
+Cuarta revisión de Codex (24-11-2026):
+- Si otra ruta del mismo título conserva alguna lección oficial intacta, tampoco se reconoce
+  ninguna, aunque solo una cumpla la regla. Un curso oficial con una lección editada no la
+  cumple, y una copia creada antes con las seis lecciones intactas y una séptima propia sí: la
+  copia se quedaba con la dirección oficial. Una copia con todos sus textos propios no impide
+  reconocer el curso.
 """
+
+from collections import Counter
 
 import json
 from pathlib import Path
@@ -68,17 +77,33 @@ def is_official_course(path, course, Lesson):
     return own == expected
 
 
+def keeps_an_official_lesson(path, course, Lesson):
+    """True si la ruta tiene al menos una lección oficial intacta: posición, título y texto."""
+    expected = {(position, *data) for position, data in course['lessons'].items()}
+    lessons = Lesson.objects.filter(path=path).values_list('position', 'title', 'body')
+    return any(lesson in expected for lesson in lessons)
+
+
 def assign_slugs(apps, schema_editor):
     LearningPath = apps.get_model('hub', 'LearningPath')
     Lesson = apps.get_model('hub', 'Lesson')
     official = official_courses()
-    candidates = {}
+    candidates, related = {}, Counter()
     for path in LearningPath.objects.order_by('pk'):
         course = official.get(path.title)
-        if course and is_official_course(path, course, Lesson):
+        if not course:
+            continue
+        if keeps_an_official_lesson(path, course, Lesson):
+            related[course['slug']] += 1
+        if is_official_course(path, course, Lesson):
             candidates.setdefault(course['slug'], []).append(path.pk)
-    # Solo recibe el slug oficial la única ruta que cumple la regla; con dos o más, ninguna.
-    official_pk = {pks[0]: slug for slug, pks in candidates.items() if len(pks) == 1}
+    # Solo recibe el slug oficial la única ruta que cumple la regla, y solo si ninguna otra del
+    # mismo título conserva una lección oficial: esa otra podría ser el curso, editado.
+    official_pk = {
+        pks[0]: slug
+        for slug, pks in candidates.items()
+        if len(pks) == 1 and related[slug] == 1
+    }
     # Ninguna ruta local puede recibir un slug oficial, ni siquiera con sufijo de otra.
     used = {course['slug'] for course in official.values()}
     for path in LearningPath.objects.order_by('pk'):

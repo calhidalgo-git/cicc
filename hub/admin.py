@@ -181,9 +181,16 @@ class AuditAdmin(ReadOnlyAdmin):
 
 @admin.register(Progress)
 class ProgressAdmin(ReadOnlyAdmin):
+    """El avance es de solo lectura para todos: nadie lo borra, tampoco un superusuario
+    (decisión de Carlos, 24-11-2026; la ficha de T06 solo permite borrar intentos y auditoría).
+    """
+
     list_display = ('user', 'lesson')
     search_fields = ('user__username', 'lesson__title')
     list_select_related = ('user', 'lesson', 'lesson__path')
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 for model in [ResourceVersion, Lesson]:

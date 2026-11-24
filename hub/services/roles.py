@@ -5,7 +5,8 @@ grupos, así que puede ejecutarse en producción las veces que haga falta.
 """
 
 from django.contrib.auth.models import Group, Permission
-from django.db import transaction
+from django.db import DEFAULT_DB_ALIAS, connections, transaction
+from django.db.migrations.executor import MigrationExecutor
 
 
 def crud(*models):
@@ -29,15 +30,25 @@ ROLES = {
 }
 ADMINISTRATOR = 'Administrador'
 ADMINISTRATOR_APPS = ('hub', 'auth')
+# El Administrador recibe todos los permisos de hub y auth; sin estos dos perdería reportes y la
+# descarga del respaldo sin que nadie lo note (cuarta revisión de Codex, 24-11-2026).
+ADMINISTRATOR_REQUIRED = ['view_reports', 'export_backup']
+
+
+def missing_codes(codes):
+    found = Permission.objects.filter(content_type__app_label='hub', codename__in=codes)
+    return set(codes) - set(found.values_list('codename', flat=True))
 
 
 def role_permissions(name):
     """Permisos que corresponden al rol ``name``."""
     if name == ADMINISTRATOR:
-        return Permission.objects.filter(content_type__app_label__in=ADMINISTRATOR_APPS)
-    codes = ROLES[name]
-    permissions = Permission.objects.filter(content_type__app_label='hub', codename__in=codes)
-    missing = set(codes) - set(permissions.values_list('codename', flat=True))
+        codes = ADMINISTRATOR_REQUIRED
+        permissions = Permission.objects.filter(content_type__app_label__in=ADMINISTRATOR_APPS)
+    else:
+        codes = ROLES[name]
+        permissions = Permission.objects.filter(content_type__app_label='hub', codename__in=codes)
+    missing = missing_codes(codes)
     if missing:
         raise LookupError(
             'Faltan permisos en la base: ' + ', '.join(sorted(missing)) + '. Ejecuta migrate.'
@@ -45,12 +56,25 @@ def role_permissions(name):
     return permissions
 
 
+def check_migrated(using=DEFAULT_DB_ALIAS):
+    """Detiene el comando si la base no tiene todas las migraciones, o ni siquiera sus tablas."""
+    executor = MigrationExecutor(connections[using])
+    pending = executor.migration_plan(executor.loader.graph.leaf_nodes())
+    if pending:
+        raise LookupError(
+            f'La base no está al día: faltan {len(pending)} migraciones. Ejecuta migrate.'
+        )
+
+
 ROLE_NAMES = [*ROLES, ADMINISTRATOR]
 
 
 @transaction.atomic
 def bootstrap_roles():
-    """Crea o actualiza los cuatro grupos. Devuelve los nombres de los grupos creados."""
+    """Crea o actualiza los cuatro grupos. Devuelve los nombres de los grupos creados.
+
+    El comando ``bootstrap_roles`` llama antes a ``check_migrated()``.
+    """
     created_names = []
     for name in ROLE_NAMES:
         group, created = Group.objects.get_or_create(name=name)

@@ -5,7 +5,7 @@
 - El grupo ``Administrador``, si existe, recibe ``hub.export_backup``.
 
 Los permisos nuevos se crean aquí porque Django solo los crea al terminar ``migrate``. Al revertir,
-se quitan de todos los grupos: antes de T06 no existían.
+se borran del catálogo, y con ellos de todos los grupos y cuentas: antes de T06 no existían.
 """
 
 from django.contrib.auth.management import create_permissions
@@ -33,14 +33,20 @@ def forward(apps, schema_editor):
         administrator.permissions.add(permission(apps, 'export_backup'))
 
 
-def backward(apps, schema_editor):
-    Group = apps.get_model('auth', 'Group')
+NEW_PERMISSIONS = ['view_reports', 'export_backup']
+
+
+def delete_new_permissions(apps, schema_editor):
+    """Borra los dos permisos del catálogo. Con ellos desaparecen sus asignaciones a grupos y a
+    cuentas (cuarta revisión de Codex, 24-11-2026). Si se vuelve solo a 0010, Django los crea otra
+    vez al terminar ``migrate``, sin asignar; la 0010 los borra al revertirse.
+    """
     Permission = apps.get_model('auth', 'Permission')
-    new = Permission.objects.filter(
-        content_type__app_label='hub', codename__in=['view_reports', 'export_backup']
-    )
-    for group in Group.objects.filter(permissions__in=new).distinct():
-        group.permissions.remove(*new)
+    Permission.objects.filter(content_type__app_label='hub', codename__in=NEW_PERMISSIONS).delete()
+
+
+def backward(apps, schema_editor):
+    delete_new_permissions(apps, schema_editor)
 
 
 class Migration(migrations.Migration):

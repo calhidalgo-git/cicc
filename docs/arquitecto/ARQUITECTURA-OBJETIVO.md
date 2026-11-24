@@ -127,6 +127,8 @@ Cada decisión es definitiva para los implementadores. Carlos puede vetar las ma
 
 **D11. Roles sin datos demo.** `bootstrap_roles` crea los cuatro grupos y sus permisos y puede ejecutarse en producción las veces que haga falta. `seed_demo` lo invoca y solo corre con `CICC_DEMO=1`. El primer administrador real se crea con `createsuperuser`.
 
+  **Editor y teoría del menú (decisión de Carlos, 24-11-2026).** Además de recursos, versiones, rutas y lecciones, el Editor tiene `view_sectionpage` y `change_sectionpage`: escribe la teoría de las páginas del menú que agregó T12.
+
 **D12. Waitress + WhiteNoise.** Funcionan igual en Windows y Linux y no requieren compilar nada. HTTPS, si se usa, lo termina un proxy inverso; `CICC_HTTPS=1` activa cookies seguras y cabeceras.
 
 **D13. Sin correo.** No hay recuperación de contraseña por correo; un administrador restablece contraseñas desde el administrador y cada persona puede cambiar la suya dentro de la aplicación.

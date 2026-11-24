@@ -504,7 +504,8 @@ class BackupRestoresBySectionSlug(TransactionTestCase):
 
     def test_backup_after_reapplying_0009_restores_on_a_fresh_installation(self):
         self.migrate(self.NO_PAGES)
-        self.migrate(self.PAGES)
+        # T06: la demo usa los permisos de 0010 y 0011, así que se carga con la base al día.
+        self.migrate(MigrationExecutor(connection).loader.graph.leaf_nodes())
         seed_demo(stdout=StringIO())
         self.write_theory()
         first = self.page_numbers()

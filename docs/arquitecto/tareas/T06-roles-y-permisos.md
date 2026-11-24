@@ -22,7 +22,7 @@ Separar los permisos de gestión, permitir crear los roles en producción sin da
    | Grupo | Permisos |
    |---|---|
    | Participante | ninguno |
-   | Editor | ver, agregar y cambiar: `resource`, `resourceversion`, `learningpath`, `lesson` |
+   | Editor | ver, agregar y cambiar: `resource`, `resourceversion`, `learningpath`, `lesson`; `view_sectionpage` y `change_sectionpage` (teoría de las páginas del menú, T12; decisión de Carlos, 24-11-2026) |
    | Evaluador | ver, agregar y cambiar: `question`, `assessment`; `view_audit`; `view_reports` |
    | Administrador | todos los permisos de `hub` y `auth` |
 
@@ -31,7 +31,7 @@ Separar los permisos de gestión, permitir crear los roles en producción sin da
    - `Resource`: columnas título, área, tipo, publicado; filtros por área, tipo y publicado; búsqueda por título y descripción; versiones en línea.
    - `Assessment`: preguntas en línea; `Question` ejecuta su validación `clean()` al guardar.
    - `Attempt` y `Audit`: solo lectura (sin agregar ni cambiar; borrar solo superusuario); columnas útiles, filtro por fecha y búsqueda por usuario.
-   - `Progress`: solo lectura.
+   - `Progress`: solo lectura. Nadie lo borra, tampoco un superusuario (decisión de Carlos, 24-11-2026).
 7. **Pruebas.** Cambio de comportamiento autorizado: en `test_excel_and_backup`, `lucia` (Evaluador) ahora recibe **403** en `POST /backup/`; agrega que `admin` recibe 200. Además:
    - Matriz completa: para cada rol y cada sección restringida, el código esperado (200 o 403).
    - `bootstrap_roles` dos veces deja los mismos permisos; no crea usuarios.

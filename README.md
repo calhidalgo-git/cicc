@@ -44,7 +44,7 @@ python manage.py bootstrap_roles
 python manage.py createsuperuser
 ```
 
-`bootstrap_roles` crea o actualiza los cuatro roles con sus permisos. No crea cuentas ni toca otros grupos, y se puede repetir: vuelve a dejar cada rol con su lista de permisos.
+`bootstrap_roles` crea o actualiza los cuatro roles con sus permisos. No crea cuentas ni toca otros grupos, y se puede repetir: vuelve a dejar cada rol con su lista de permisos. Si la base no tiene todas las migraciones, o falta uno de los permisos de los roles, se detiene sin cambiar nada y pide ejecutar `migrate`.
 
 | Rol | Puede |
 |---|---|
@@ -57,7 +57,7 @@ Asigna los roles a cada persona desde `/admin/`, en Usuarios. El primer administ
 
 `seed_demo` se niega a correr sin `CICC_DEMO=1`, porque crea cuentas de demostración con una contraseña conocida.
 
-**Actualizar desde una versión anterior a T06.** Al migrar, todo grupo que podía ver la auditoría recibe también el permiso de reportes, así que conserva el acceso. El grupo `Administrador` recibe el permiso de respaldo. Otros grupos que abrían Respaldos dejan de hacerlo. Después ejecuta `bootstrap_roles` para dejar los cuatro roles con la lista completa.
+**Actualizar desde una versión anterior a T06.** Al migrar, todo grupo que podía ver la auditoría recibe también el permiso de reportes, así que conserva el acceso. El grupo `Administrador` recibe el permiso de respaldo. Otros grupos que abrían Respaldos dejan de hacerlo. Después ejecuta `bootstrap_roles` para dejar los cuatro roles con la lista completa. Si vuelves a una versión anterior (`migrate hub 0009`), los dos permisos nuevos se borran, también de las cuentas a las que se dieron directamente. Los intentos y la auditoría son de solo lectura en el administrador, y solo un superusuario los borra. El avance de las personas no lo borra nadie.
 
 | Variable | Uso |
 |---|---|

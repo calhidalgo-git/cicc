@@ -4,14 +4,26 @@ from django.conf import settings
 from django.db import migrations, models
 
 
+def delete_new_permissions(apps, schema_editor):
+    """Al revertir: Django pudo volver a crear los permisos al terminar ``migrate hub 0010``. En
+    0009 no existen (cuarta revisión de Codex, 24-11-2026)."""
+    Permission = apps.get_model('auth', 'Permission')
+    Permission.objects.filter(
+        content_type__app_label='hub', codename__in=['view_reports', 'export_backup']
+    ).delete()
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
         ('hub', '0009_section_pages_data'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+        ('auth', '0012_alter_user_first_name_max_length'),
     ]
 
     operations = [
+        # Solo actúa al revertir; va primera para ejecutarse al final de la reversión.
+        migrations.RunPython(migrations.RunPython.noop, delete_new_permissions),
         migrations.AlterModelOptions(
             name='attempt',
             options={'permissions': [('view_reports', 'Puede ver reportes globales')]},

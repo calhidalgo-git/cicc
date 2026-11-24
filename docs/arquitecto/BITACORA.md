@@ -841,3 +841,42 @@ Ninguna.
 
 ### Preguntas para el arquitecto
 Ninguna.
+
+## T06 — Correcciones de la cuarta revisión de Codex (24-11-2026)
+- Fecha: 2026-11-24
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T06-roles-y-permisos`, en `CICC-local\original\T06`. Merge de T12: `9436ee7`. Commit de código `b2dd903`. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+Primera revisión de T06 (`revision-codex-original-4.md`):
+- **Correcciones de T05 y T12.** Llegan con el merge `9436ee7`, sin conflictos de código. Ver sus entradas del mismo día.
+- **Media: se podía borrar el avance (decisión de Carlos: opción A).** `ProgressAdmin.has_delete_permission()` devuelve siempre `False`: nadie borra un avance, tampoco un superusuario. Los intentos y la auditoría conservan la excepción del superusuario que permite la ficha.
+- **Media: volver a T12 dejaba permisos de T06.**
+  - Al revertir, la 0011 borra `view_reports` y `export_backup` del catálogo. Con ellos desaparecen sus asignaciones a grupos y a cuentas.
+  - La 0010 tiene un paso nuevo que solo actúa al revertir y vuelve a borrarlos, porque Django los crea otra vez al terminar `migrate hub 0010`.
+  - Al reaplicar, los grupos con `view_audit` y el Administrador los recuperan. Una asignación directa a una cuenta no vuelve.
+- **Media: `bootstrap_roles` no siempre detectaba qué faltaba.**
+  - El comando comprueba antes que no queden migraciones pendientes. En una base sin tablas dice «La base no está al día: faltan 29 migraciones. Ejecuta migrate.».
+  - El Administrador exige `view_reports` y `export_backup`. Si falta uno, el comando termina con error y no cambia ningún grupo.
+  - La comprobación de migraciones está en el comando y no en `bootstrap_roles()`, porque `seed_demo` lo usa también dentro de las pruebas de migración.
+- **Matriz y D11 (decisión de Carlos).** La matriz de `tareas/T06-roles-y-permisos.md` y D11 en `ARQUITECTURA-OBJETIVO.md` incluyen `view_sectionpage` y `change_sectionpage` del Editor. La ficha dice que nadie borra el avance.
+- **README.** Explica qué pasa al revertir los permisos, el aviso de `bootstrap_roles` y las reglas de borrado.
+
+### Desviaciones respecto a la tarea
+- **Migración 0010 modificada.** Se le agregó un paso que solo actúa al revertir y la dependencia de `auth`. Las bases que ya la aplicaron no cambian.
+- **Prueba de T12 ajustada en T06.** En `test_section_pages.test_backup_after_reapplying_0009_restores_on_a_fresh_installation`, la demo se carga con la base al día y no en 0009. En 0009 ya no existen los permisos de T06 que usa `seed_demo`. Las aserciones no cambiaron.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 191 tests in 216.046s` · `OK`.
+- PostgreSQL 16.16 local (modo producción, base temporal `cicc_rev4_t06` borrada al terminar): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 191 tests in 225.269s` · `OK`.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `76 files already formatted`.
+- **Pruebas nuevas** (`hub/tests/test_codex_review_4_roles.py`, 7). Con el código anterior: `FAILED (failures=6, errors=1)`.
+- **Copia de la demo de Carlos** (worktree temporal `CICC-local\tmp-rev4-t06`, borrado; huella `333f4566e875e09a` sin cambios):
+  - En una base vacía, `bootstrap_roles` respondió «La base no está al día: faltan 29 migraciones. Ejecuta migrate.».
+  - De 0007 a la última migración y `bootstrap_roles`: Participante 0, Editor 14, Evaluador 8 y Administrador 58 permisos. Los dos permisos nuevos están en el catálogo.
+  - `migrate hub 0009`: el catálogo queda sin los dos permisos. Administrador 56 y Evaluador 7.
+  - Al reaplicar y ejecutar `bootstrap_roles`, otra vez 0, 14, 8 y 58.
+
+### Preguntas para el arquitecto
+- Ninguna. Las dos de T06 quedan resueltas por Carlos.

@@ -114,13 +114,28 @@ def shifted_lessons(path, course):
     una ruta con lecciones propias antes de las oficiales y renumerarlas. Ahí la lección oficial
     «Semana 1» quedó, por ejemplo, en la posición 3, y en la 1 hay un ejercicio propio.
     Reescribir por posición borraría el ejercicio (cuarta revisión de Codex, 24-11-2026).
+
+    Quinta revisión de Codex (24-11-2026):
+    - La lección oficial se reconoce por su título **o por su texto**: con el título cambiado, la
+      semana 6 en la posición 7 sigue siendo la semana 6, y en la 6 puede haber un ejercicio.
+    - Una lección que repite el título o el texto de otra oficial no cuenta si esa oficial ya está
+      en su lugar: es una práctica propia.
     """
-    official = {item['title']: item['position'] for item in course['lessons']}
-    return sorted(
-        position
-        for position, title in path.lessons.values_list('position', 'title')
-        if title in official and official[title] != position
-    )
+    places = {}
+    for item in course['lessons']:
+        text = html_to_text(sanitize_html((course['dir'] / item['file']).read_text('utf-8')))
+        places[('title', item['title'])] = item['position']
+        places[('body', text)] = item['position']
+    lessons = list(path.lessons.values_list('position', 'title', 'body'))
+    in_place = {(position, 'title', title) for position, title, _ in lessons}
+    in_place |= {(position, 'body', body) for position, _, body in lessons}
+    shifted = set()
+    for position, title, body in lessons:
+        for key in (('title', title), ('body', body)):
+            home = places.get(key)
+            if home is not None and home != position and (home, *key) not in in_place:
+                shifted.add(position)
+    return sorted(shifted)
 
 
 def empty_summary():

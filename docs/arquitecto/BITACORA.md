@@ -880,3 +880,52 @@ Primera revisión de T06 (`revision-codex-original-4.md`):
 
 ### Preguntas para el arquitecto
 - Ninguna. Las dos de T06 quedan resueltas por Carlos.
+
+## Decisión de Carlos — 24-11-2026 (tras la quinta revisión de Codex)
+- **Opción 2.** Tras `revision-codex-original-5.md`, Carlos decidió corregir lo grave y lo que afecta al uso normal, y dejar el resto anotado como límites conocidos en el README. Son estos:
+  - restaurar en la misma base con direcciones propias cruzadas: se restaura en una base nueva;
+  - `--relink` cuando otro recurso ya abre el curso: se asigna en el administrador;
+  - `update()` desde código con una ruta creada al mismo tiempo desde otra conexión.
+
+## T05 — Correcciones de la quinta revisión de Codex (24-11-2026)
+- Fecha: 2026-11-24
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T05-cursos-al-modelo`, en la carpeta de Carlos. Commit de código `2ea3b72`. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+- **Alta: un ejercicio completado se convertía en una semana oficial.** `shifted_lessons` reconoce ahora la lección oficial por su título **o por su texto**. Con la semana 6 renombrada en la posición 7 y un ejercicio en la 6, el curso queda protegido y `load_courses` avisa. Una vez movido el ejercicio después del curso, `--force` repone la semana 6.
+- **Alta: la copia heredaba la dirección al revertir.** La 0005 deja todas las rutas locales si cualquier otra ruta, se llame como se llame, conserva el título o el texto de una lección oficial en su posición. Cubre el curso renombrado y el curso con sus seis textos editados. En ambos casos, el respaldo restaurado en la misma base devuelve **1 de 6**.
+- **Media: reordenar desde el administrador daba error 500.** `LearningPathAdmin.save_formset()` lleva antes a posiciones libres las lecciones que cambian de posición. Después cada una recibe la suya, en un solo guardado.
+- **Baja: una práctica con el título de una semana bloqueaba la carga.** No cuenta como desplazada si esa semana ya está en su lugar. La semana que falta se crea.
+- **Límites conocidos** (decisión de Carlos, opción 2): están en el README.
+
+### Desviaciones respecto a la tarea
+- **Migración 0005 modificada otra vez.** Solo cambia su lógica de datos.
+- **Prueba existente ajustada.** En `test_migrations.test_reapplying_after_a_revert_keeps_the_local_copy_apart`, la copia conserva los títulos oficiales. Con la regla nueva, el curso no se reconoce y `load_courses` lo crea aparte. La prueba espera ahora que el curso anterior no tome la dirección oficial, y tres rutas en lugar de dos. Las comprobaciones de la copia (textos, avance y dirección `fundamentos-qa-2`) no cambiaron.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 142 tests in 125.250s` · `OK`.
+- PostgreSQL 16.16 local (base temporal borrada): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 142 tests in 127.356s` · `OK`.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `65 files already formatted`.
+- **Pruebas nuevas** (`hub/tests/test_codex_review_5.py`, 6). Con el código anterior: `FAILED (failures=4, errors=1)`. La sexta comprueba que `--force` vuelve a funcionar después de ordenar.
+- **Copia de la demo de Carlos** (worktree temporal borrado; huella `333f4566e875e09a` sin cambios): tras `migrate hub 0003` y `migrate`, los tres cursos recuperaron su dirección (4, 5 y 6). `--relink` → 3. `--force` → 26. Quedaron 6 rutas, 39 lecciones, 23 con HTML y 3 vínculos.
+
+## T12 — Correcciones de la quinta revisión de Codex (24-11-2026)
+- Fecha: 2026-11-24
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T12-paginas-del-menu`, en `CICC-local\original\T12`. Merge de T05: `5b18195`. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+- **Correcciones de T05.** Llegan con el merge `5b18195`: semanas reconocidas por título o texto, curso renombrado o reescrito al revertir, reordenación en un solo guardado, práctica con título repetido y límites conocidos (opción 2 de Carlos). Ver la entrada de T05 del mismo día.
+- **Conflictos.** En `hub/admin.py` se juntaron las importaciones `Count` (T12) y `Max` (T05). En el README se conservó el párrafo de las páginas de sección y la guía nueva de T05. Queda una sola guía de recuperación.
+
+### Desviaciones respecto a la tarea
+Ninguna.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 175 tests in 162.975s` · `OK`.
+- PostgreSQL 16.16 local (base temporal borrada): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 175 tests in 176.031s` · `OK`.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `72 files already formatted`.
+- README: una sola sección «Revertir las migraciones de cursos», un solo «Límites conocidos» y ninguna marca de conflicto.

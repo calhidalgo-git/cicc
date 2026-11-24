@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.db.models import Count
+from django.db.models import Count, Max
 
 from .models import (
     Assessment,
@@ -45,6 +45,30 @@ class LearningPathAdmin(admin.ModelAdmin):
         if self.is_official(obj):
             return {}
         return super().get_prepopulated_fields(request, obj)
+
+    def save_formset(self, request, form, formset, change):
+        """Reordenar las lecciones en un solo guardado (quinta revisión de Codex, 24-11-2026).
+
+        La posición es única en cada ruta y la base la comprueba fila a fila. Si dos lecciones
+        intercambian posiciones, la primera chocaría con la segunda todavía en su sitio. Antes de
+        guardar, las lecciones que cambian de posición pasan a posiciones libres por encima de
+        todas las demás; después cada una recibe la suya.
+        """
+        if formset.model is Lesson:
+            moving = [
+                f.instance.pk
+                for f in formset.forms
+                if f.instance.pk
+                and 'position' in f.changed_data
+                and not formset._should_delete_form(f)
+            ]
+            if moving:
+                finals = [f.cleaned_data.get('position') or 0 for f in formset.forms]
+                stored = Lesson.objects.filter(path=form.instance).aggregate(top=Max('position'))
+                base = max([stored['top'] or 0, *finals])
+                for offset, pk in enumerate(moving, 1):
+                    Lesson.objects.filter(pk=pk).update(position=base + offset)
+        super().save_formset(request, form, formset, change)
 
 
 EDIT_PERMISSION = 'hub.change_sectionpage'

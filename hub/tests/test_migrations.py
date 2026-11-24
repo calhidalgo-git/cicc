@@ -215,7 +215,7 @@ class LocalCopyOfAnOfficialCourse(TransactionTestCase):
         Progress.objects.create(user=user, lesson=lessons[3])
         return local.pk, lessons[3].pk
 
-    def assert_local_copy_is_intact(self, local_pk, done_pk, user_pk):
+    def assert_local_copy_is_intact(self, local_pk, done_pk, user_pk, paths=2):
         from ..models import LearningPath, Lesson, Progress
 
         course = self.course()
@@ -245,7 +245,7 @@ class LocalCopyOfAnOfficialCourse(TransactionTestCase):
                 [(item['title'], official_text(course, item)) for item in course['lessons']],
                 options,
             )
-            self.assertEqual(LearningPath.objects.filter(title=course['title']).count(), 2)
+            self.assertEqual(LearningPath.objects.filter(title=course['title']).count(), paths)
 
     def test_first_update_from_t04_keeps_the_local_copy_apart(self):
         apps = self.migrate(BEFORE)
@@ -275,8 +275,11 @@ class LocalCopyOfAnOfficialCourse(TransactionTestCase):
         self.migrate(BEFORE)
         apps = self.migrate(AFTER)
         LearningPath = apps.get_model('hub', 'LearningPath')
-        self.assertEqual(LearningPath.objects.get(pk=official_pk).slug, 'fundamentos-qa')
+        # Quinta revisión de Codex: la copia conserva los títulos oficiales, así que no se puede
+        # saber cuál es el curso y ninguna toma la dirección. load_courses crea el curso aparte.
+        self.assertNotEqual(LearningPath.objects.get(pk=official_pk).slug, 'fundamentos-qa')
         self.assertEqual(LearningPath.objects.get(pk=local_pk).slug, 'fundamentos-qa-2')
 
         self.migrate(self.latest())
-        self.assert_local_copy_is_intact(local_pk, done_pk, user.pk)
+        # La copia, el curso anterior (ahora local) y el curso que crea load_courses.
+        self.assert_local_copy_is_intact(local_pk, done_pk, user.pk, paths=3)

@@ -26,8 +26,13 @@ Cuarta revisión de Codex (24-11-2026):
 - Si otra ruta del mismo título conserva alguna lección oficial intacta, tampoco se reconoce
   ninguna, aunque solo una cumpla la regla. Un curso oficial con una lección editada no la
   cumple, y una copia creada antes con las seis lecciones intactas y una séptima propia sí: la
-  copia se quedaba con la dirección oficial. Una copia con todos sus textos propios no impide
-  reconocer el curso.
+  copia se quedaba con la dirección oficial.
+
+Quinta revisión de Codex (24-11-2026):
+- Basta con que otra ruta, de cualquier título, conserve el título o el texto de una lección
+  oficial en su posición. El curso pudo cambiar de nombre o de todos sus textos antes de revertir,
+  y la copia no debe heredar su dirección. Ante la duda, todas las rutas quedan locales: no se
+  pierde nada, y el respaldo hecho antes de revertir devuelve la dirección al curso.
 """
 
 from collections import Counter
@@ -78,10 +83,18 @@ def is_official_course(path, course, Lesson):
 
 
 def keeps_an_official_lesson(path, course, Lesson):
-    """True si la ruta tiene al menos una lección oficial intacta: posición, título y texto."""
-    expected = {(position, *data) for position, data in course['lessons'].items()}
+    """True si la ruta conserva algo de una lección oficial en su posición: el título o el texto.
+
+    Se mira en cualquier ruta, se llame como se llame: el curso pudo cambiar de título o de
+    textos antes de revertir (quinta revisión de Codex, 24-11-2026).
+    """
+    titles = {(position, title) for position, (title, _) in course['lessons'].items()}
+    bodies = {(position, body) for position, (_, body) in course['lessons'].items()}
     lessons = Lesson.objects.filter(path=path).values_list('position', 'title', 'body')
-    return any(lesson in expected for lesson in lessons)
+    return any(
+        (position, title) in titles or (position, body) in bodies
+        for position, title, body in lessons
+    )
 
 
 def assign_slugs(apps, schema_editor):
@@ -90,15 +103,14 @@ def assign_slugs(apps, schema_editor):
     official = official_courses()
     candidates, related = {}, Counter()
     for path in LearningPath.objects.order_by('pk'):
+        for course in official.values():
+            if keeps_an_official_lesson(path, course, Lesson):
+                related[course['slug']] += 1
         course = official.get(path.title)
-        if not course:
-            continue
-        if keeps_an_official_lesson(path, course, Lesson):
-            related[course['slug']] += 1
-        if is_official_course(path, course, Lesson):
+        if course and is_official_course(path, course, Lesson):
             candidates.setdefault(course['slug'], []).append(path.pk)
-    # Solo recibe el slug oficial la única ruta que cumple la regla, y solo si ninguna otra del
-    # mismo título conserva una lección oficial: esa otra podría ser el curso, editado.
+    # Solo recibe el slug oficial la única ruta que cumple la regla, y solo si ninguna otra ruta
+    # conserva algo de una lección oficial: esa otra podría ser el curso, editado o renombrado.
     official_pk = {
         pks[0]: slug
         for slug, pks in candidates.items()

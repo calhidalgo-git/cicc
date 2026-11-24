@@ -122,7 +122,10 @@ class UpdateKeepsLocalCoursesApart(TransactionTestCase):
             self.assertEqual(Lesson.objects.filter(path=official).count(), 6, options)
         self.assertEqual(Progress.objects.count(), 1)
 
-    def test_reapplying_after_a_revert_recognises_the_official_course(self):
+    def test_reapplying_after_a_revert_leaves_every_path_local(self):
+        """Desde la sexta revisión de Codex (decisión de Carlos, 24-11-2026), la 0005 no intenta
+        reconocer el curso tras revertir: ni siquiera el curso intacto recupera su dirección. La
+        recupera el respaldo hecho antes de revertir."""
         course = next(c for c in read_courses() if c['slug'] == 'qa-avanzado')
         apps = self.migrate(BEFORE)
         LearningPath = apps.get_model('hub', 'LearningPath')
@@ -148,8 +151,12 @@ class UpdateKeepsLocalCoursesApart(TransactionTestCase):
 
         apps = self.migrate(AFTER)
         LearningPath = apps.get_model('hub', 'LearningPath')
-        self.assertEqual(LearningPath.objects.get(pk=official.pk).slug, 'qa-avanzado')
-        self.assertEqual(LearningPath.objects.get(pk=twin.pk).slug, 'qa-avanzado-y-especializacion')
+        self.assertEqual(
+            LearningPath.objects.get(pk=official.pk).slug, 'qa-avanzado-y-especializacion'
+        )
+        self.assertEqual(
+            LearningPath.objects.get(pk=twin.pk).slug, 'qa-avanzado-y-especializacion-2'
+        )
 
     def test_update_links_the_historical_resources_without_touching_local_ones(self):
         apps = self.migrate(BEFORE)

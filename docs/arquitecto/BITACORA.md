@@ -812,3 +812,45 @@ Ninguna.
 - PostgreSQL 16.16 local (base temporal borrada): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 175 tests in 176.031s` · `OK`.
 - `ruff check .` → `All checks passed!` · `ruff format --check .` → `72 files already formatted`.
 - README: una sola sección «Revertir las migraciones de cursos», un solo «Límites conocidos» y ninguna marca de conflicto.
+
+## Decisión de Carlos — 24-11-2026 (tras la sexta revisión de Codex)
+- **Opción 1: dejar de adivinar.** Tras `revision-codex-original-6.md`, Carlos eligió cambiar el diseño en lugar de seguir con parches:
+  - al revertir, la 0005 ya no reconoce ningún curso;
+  - `--force` solo reescribe lecciones con marca de «lección oficial».
+- Se corrigen también los tres hallazgos sencillos: reutilizar un puesto en el mismo guardado, la posición máxima y el aviso de T06 en español.
+
+## T05 — Correcciones de la sexta revisión de Codex: no adivinar (24-11-2026)
+- Fecha: 2026-11-24
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T05-cursos-al-modelo`, en la carpeta de Carlos. Commit de código `651399e`. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+- **Alta: un ejercicio completado se reescribía.** Las variantes que encontró Codex (mismo título que una semana desplazada, semana con título y texto cambiados) venían de reconocer las lecciones por posición, título o texto.
+  - Nuevo campo `Lesson.official_key` (migración 0008), con valor «<slug>:<posición oficial>». Solo lo escribe `load_courses` al crear la lección, no se edita en formularios y es único en cada ruta.
+  - `--force` reescribe solo lecciones con marca, estén donde estén.
+  - Una lección oficial que falta se crea en su posición si está libre. Si la ocupa una lección propia, esa lección se conserva y el comando avisa.
+- **Lecciones sin marca.** Son las de instalaciones y respaldos anteriores. La 0008 y `load_courses` marcan solo las idénticas a la oficial (posición, título y texto). Reescribir una lección idéntica no cambia nada, y un ejercicio con texto propio nunca lo es. Las editadas quedan sin marca, y `--force` no las toca.
+- **Alta: la copia heredaba la dirección al revertir.** La 0005 ya no reconoce ningún curso: todas las rutas reciben un slug propio. La dirección vuelve restaurando el respaldo hecho antes de revertir. Se probó también con el curso reordenado (caso de la sexta revisión).
+- **Media: quitar una lección y reutilizar su puesto daba error 500.** `save_formset()` lleva también a posiciones libres las lecciones marcadas para quitar.
+- **Baja: posición máxima.** Las posiciones temporales son los números libres más bajos, no «máximo + 1», así que siempre caben en el campo.
+- **Baja: práctica de repaso que impedía recuperar una semana.** Ya no hay detección de lecciones desplazadas: la semana que falta se crea si su posición está libre.
+- **README.** La guía de cursos está reescrita: marca de lección oficial, `--force`, revertir y restaurar.
+
+### Desviaciones respecto a la tarea
+- **Migración 0005 simplificada** y **migración nueva 0008**. Las bases que ya aplicaron la 0005 no cambian.
+- **Pruebas existentes ajustadas al diseño nuevo:**
+  - `test_migrations.test_reapplying_after_a_revert_leaves_every_path_local` (antes «…recognises_the_official_course») espera ahora que el curso intacto quede local.
+  - `test_codex_review_4` espera el aviso de posición ocupada en lugar del de lecciones desplazadas.
+  - `test_codex_review_5.ForceKeepsAnUnrecognisedLesson` usa lecciones con marca.
+  - Las comprobaciones de textos y avances no cambiaron.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 151 tests in 100.523s` · `OK`.
+- PostgreSQL 16.16 local (base temporal borrada): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 151 tests in 117.809s` · `OK`.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `66 files already formatted`.
+- **Pruebas nuevas** (`hub/tests/test_codex_review_6.py`, 9). Con el código anterior, 6 de las 8 primeras fallan: `FAILED (failures=2, errors=4)`. La novena, del respaldo sin marcas, se agregó después.
+- **Copia de la demo de Carlos** (worktree temporal borrado; huella `333f4566e875e09a` sin cambios):
+  - Al migrar desde 0007, las 23 lecciones oficiales quedan marcadas. `load_courses` → 0. `--force` → 26.
+  - Respaldo, `migrate hub 0003` y `migrate`: 6 rutas, ninguna oficial, 0 marcas.
+  - `loaddata` del respaldo en la misma base: `Installed 97 object(s)`, los tres cursos en sus direcciones (4, 5 y 6), 23 marcas, 23 lecciones con HTML y 3 vínculos. `load_courses` → 0.

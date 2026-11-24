@@ -63,7 +63,8 @@ class AlreadyMigratedBaseKeepsTheExercises(TestCase):
     def test_normal_and_forced_loads_keep_the_exercises_and_the_progress(self):
         for options in ({}, {'force': True}):
             output = load(**options)
-            self.assertIn('tiene lecciones oficiales fuera de su posición', output, options)
+            # Sin marcas (como deja la 0008 cuando hay dudas), nada se reescribe y se avisa.
+            self.assertIn('la ocupa una lección propia', output, options)
             lessons = dict(self.path.lessons.values_list('position', 'title'))
             self.assertEqual((lessons[1], lessons[2]), ('Ejercicio A', 'Ejercicio B'), options)
             self.assertEqual(self.path.lessons.count(), 8, options)

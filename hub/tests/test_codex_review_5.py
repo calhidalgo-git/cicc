@@ -1,7 +1,6 @@
 """Correcciones de la quinta revisión de Codex (24-11-2026), opción 2 de Carlos.
 
-1. La lección oficial se reconoce también por su texto: con la semana 6 renombrada en la posición 7,
-   load_courses protege el curso y el ejercicio completado de la posición 6 conserva su contenido.
+1. Un ejercicio completado en una posición del curso conserva su contenido y su avance con --force.
 2. Al revertir, la copia no hereda la dirección aunque el curso haya cambiado de nombre o de
    todos sus textos.
 3. Las lecciones de una ruta se reordenan en un solo guardado del administrador.
@@ -24,6 +23,7 @@ from .test_codex_review_3 import (
     fundamentos,
     load,
     official_html,
+    official_text,
 )
 
 
@@ -40,7 +40,11 @@ def official_path(course):
 
 
 class ForceKeepsAnUnrecognisedLesson(TestCase):
-    """Hallazgo 1: semanas 1 a 5 en su lugar, un ejercicio en la 6 y la semana 6 renombrada en 7."""
+    """Hallazgo 1: semanas 1 a 5 en su lugar, un ejercicio en la 6 y la semana 6 renombrada en 7.
+
+    Desde la sexta revisión, las lecciones oficiales llevan marca (``official_key``): el ejercicio
+    no la tiene y --force no lo toca; la semana 6 sí, y se repone aunque esté en la posición 7.
+    """
 
     def setUp(self):
         self.course = fundamentos()
@@ -51,38 +55,37 @@ class ForceKeepsAnUnrecognisedLesson(TestCase):
                 position=item['position'],
                 title=item['title'],
                 body_html=official_html(self.course, item),
+                official_key=f'fundamentos-qa:{item["position"]}',
             )
         self.exercise = Lesson.objects.create(
             path=self.path, position=6, title='Ejercicio A', body='Mío A'
         )
-        sixth = self.course['lessons'][5]
-        Lesson.objects.create(
+        self.sixth = Lesson.objects.create(
             path=self.path,
             position=7,
             title='Semana 6 renombrada',
-            body_html=official_html(self.course, sixth),
+            body_html='<p>Editada</p>',
+            official_key='fundamentos-qa:6',
         )
         self.user = User.objects.create_user('alumna', password=PASSWORD)
         Progress.objects.create(user=self.user, lesson=self.exercise)
 
     def test_the_exercise_and_its_progress_survive(self):
         for options in ({}, {'force': True}):
-            output = load(**options)
-            self.assertIn('tiene lecciones oficiales fuera de su posición', output, options)
+            load(**options)
             self.exercise.refresh_from_db()
             self.assertEqual((self.exercise.title, self.exercise.body), ('Ejercicio A', 'Mío A'))
             self.assertEqual(Progress.objects.get(user=self.user).lesson_id, self.exercise.pk)
             self.assertEqual(self.path.lessons.count(), 7)
 
-    def test_after_moving_the_exercise_force_restores_the_sixth_week(self):
-        # Como pide el aviso: el ejercicio pasa después del curso, la semana 6 a su lugar.
-        self.path.lessons.filter(pk=self.exercise.pk).update(position=8)
-        self.path.lessons.filter(position=7).update(position=6)
-        self.assertNotIn('fuera de su posición', load(force=True))
+    def test_force_restores_the_sixth_week_where_it_is(self):
+        load(force=True)
         sixth = self.course['lessons'][5]
-        self.assertEqual(self.path.lessons.get(position=6).title, sixth['title'])
-        self.exercise.refresh_from_db()
-        self.assertEqual((self.exercise.position, self.exercise.body), (8, 'Mío A'))
+        self.sixth.refresh_from_db()
+        self.assertEqual(
+            (self.sixth.position, self.sixth.title, self.sixth.body),
+            (7, sixth['title'], official_text(self.course, sixth)),
+        )
 
 
 class PracticeWithARepeatedTitle(TestCase):

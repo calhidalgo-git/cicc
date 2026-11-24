@@ -216,14 +216,17 @@ def load_courses(force=False):
             mark_intact_lessons(path, course)
         lessons = list(path.lessons.all())
         by_key = {lesson.official_key: lesson for lesson in lessons if lesson.official_key}
-        taken = {lesson.position for lesson in lessons}
+        taken = {lesson.position: lesson for lesson in lessons}
         for item in course['lessons']:
             key = official_key(course, item)
             body = (course['dir'] / item['file']).read_text(encoding='utf-8')
             lesson = by_key.get(key)
             if lesson is None:
-                if item['position'] in taken:
-                    summary['occupied'].append((course['title'], item['position'], item['title']))
+                occupant = taken.get(item['position'])
+                if occupant is not None:
+                    summary['occupied'].append(
+                        (course['title'], item['position'], item['title'], occupant)
+                    )
                     continue
                 Lesson.objects.create(
                     path=path,
@@ -232,7 +235,7 @@ def load_courses(force=False):
                     body_html=body,
                     official_key=key,
                 )
-                taken.add(item['position'])
+                taken[item['position']] = None
                 summary['lessons'] += 1
             elif force:
                 lesson.title = item['title']

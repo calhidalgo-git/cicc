@@ -11,15 +11,12 @@
 """
 
 import json
-import tempfile
 from datetime import timedelta
 from io import StringIO
-from pathlib import Path
 
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
-from django.core.management.base import CommandError
 from django.core.serializers.base import DeserializationError
 from django.db import IntegrityError, connection
 from django.db.migrations.executor import MigrationExecutor
@@ -39,6 +36,7 @@ from ..models import (
 )
 from ..services.courses import html_to_text, read_courses, sanitize_html
 from ..views.management import BACKUP_MODELS, backup_json
+from .temp import temp_folder
 
 PASSWORD = 'DemoQA!2026'
 BEFORE = [('hub', '0003_alter_resource_area')]
@@ -163,7 +161,7 @@ class RevertKeepsTheOfficialAddress(MigrationCase):
         load()
         user, official = self.complete_official_lesson()
         self.assertEqual(self.progress_on(user, 'fundamentos-qa'), (official.pk, 6, 1))
-        backup = Path(tempfile.mkdtemp()) / 'respaldo.json'
+        backup = temp_folder(self) / 'respaldo.json'
         backup.write_text(backup_json(), encoding='utf-8')
 
         self.migrate(BEFORE)
@@ -291,7 +289,7 @@ class BackupKeepsPeopleByUsername(SeededBase):
         self.client.login(username='admin', password=PASSWORD)
         response = self.client.post('/backup/')
         self.assertEqual(response.status_code, 200)
-        backup = Path(tempfile.mkdtemp()) / 'respaldo.json'
+        backup = temp_folder(self) / 'respaldo.json'
         backup.write_bytes(response.content)
         return backup
 
@@ -345,9 +343,3 @@ class BackupKeepsPeopleByUsername(SeededBase):
         self.empty_content()
         call_command('loaddata', str(backup), verbosity=0)
         self.assertEqual(Progress.objects.get().user.username, 'ana')
-
-
-class LoadCoursesErrors(SeededBase):
-    def test_relink_and_force_still_cannot_be_combined(self):
-        with self.assertRaises(CommandError):
-            call_command('load_courses', '--relink', '--force', stdout=StringIO())

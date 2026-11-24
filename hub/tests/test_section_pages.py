@@ -17,6 +17,7 @@ from django.test import TestCase, TransactionTestCase
 from ..models import LearningPath, Lesson, SectionBlock, SectionPage
 from ..permissions import NAV, allowed
 from ..services import pages as pages_service
+from .temp import temp_folder
 
 PASSWORD = 'DemoQA!2026'
 DANGEROUS = '<script>alert(1)</script><p onclick="x">hola</p>'
@@ -536,7 +537,7 @@ class BackupRestoresBySectionSlug(TransactionTestCase):
         fresh = self.page_numbers()
         self.assertEqual(set(fresh), set(renumbered))
         self.assertTrue(any(fresh[slug] != renumbered[slug] for slug in fresh))
-        target = Path(tempfile.mkdtemp(prefix='cicc-respaldo-')) / 'respaldo.json'
+        target = temp_folder(self, prefix='cicc-respaldo-') / 'respaldo.json'
         target.write_text(json.dumps(backup, ensure_ascii=False), encoding='utf-8')
         call_command('loaddata', str(target), stdout=StringIO())
 

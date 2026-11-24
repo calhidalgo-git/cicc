@@ -10,9 +10,6 @@
    reordenar con una lección en la posición máxima.
 """
 
-import tempfile
-from pathlib import Path
-
 from django.contrib.auth.models import User
 from django.core.management import call_command
 from django.db import connection
@@ -20,6 +17,7 @@ from django.test import TestCase
 
 from ..models import LearningPath, Lesson, Progress
 from ..views.management import backup_json
+from .temp import temp_folder
 from .test_codex_review_3 import BEFORE, PASSWORD, MigrationCase, fundamentos, load, official_text
 
 
@@ -146,7 +144,7 @@ class RevertWithAReorderedCourse(MigrationCase):
             Lesson.objects.filter(pk=lesson.pk).update(position=number)
         user = User.objects.create_user('alumna', password=PASSWORD)
         Progress.objects.create(user=user, lesson=lessons[0])
-        backup = Path(tempfile.mkdtemp()) / 'respaldo.json'
+        backup = temp_folder(self) / 'respaldo.json'
         backup.write_text(backup_json(), encoding='utf-8')
 
         self.migrate(BEFORE)

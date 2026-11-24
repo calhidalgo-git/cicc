@@ -50,11 +50,17 @@ class Command(BaseCommand):
                     'Elige en el administrador cuál abre su curso.'
                 )
             )
-        for course, position, title in summary['occupied']:
+        for course, position, title, occupant in summary['occupied']:
+            if occupant is not None and occupant.official_key:
+                who = f'otra lección oficial, «{occupant.title}», que se movió ahí'
+                advice = 'Si quieres el orden original, vuelve a colocarla en el administrador'
+            else:
+                who = 'una lección propia' + (f', «{occupant.title}»' if occupant else '')
+                advice = 'Si quieres la oficial, mueve o quita esa lección en el administrador'
             self.stdout.write(
                 self.style.WARNING(
-                    f'«{course}»: la posición {position}, de «{title}», la ocupa una lección '
-                    'propia. Se conservó y no se creó la lección oficial. Si quieres la oficial, '
-                    'mueve o quita esa lección en el administrador y vuelve a ejecutar el comando.'
+                    f'«{course}»: la posición {position}, de «{title}», la ocupa {who}. '
+                    f'No se creó la lección oficial; el resto del curso sí se cargó. {advice} '
+                    'y vuelve a ejecutar el comando.'
                 )
             )

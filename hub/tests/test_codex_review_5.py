@@ -7,15 +7,13 @@
 4. Una práctica al final con el título de una semana no impide reponer una semana ausente.
 """
 
-import tempfile
-from pathlib import Path
-
 from django.contrib.auth.models import User
 from django.core.management import call_command
 from django.test import TestCase
 
 from ..models import LearningPath, Lesson, Progress
 from ..views.management import backup_json
+from .temp import temp_folder
 from .test_codex_review_3 import (
     BEFORE,
     PASSWORD,
@@ -147,7 +145,7 @@ class RevertWithARenamedOrRewrittenCourse(MigrationCase):
         user = User.objects.create_user('alumna', password=PASSWORD)
         Progress.objects.create(user=user, lesson=official.lessons.get(position=1))
         self.assertEqual(self.progress_on(user, 'fundamentos-qa'), (official.pk, 6, 1))
-        backup = Path(tempfile.mkdtemp()) / 'respaldo.json'
+        backup = temp_folder(self) / 'respaldo.json'
         backup.write_text(backup_json(), encoding='utf-8')
 
         self.migrate(BEFORE)

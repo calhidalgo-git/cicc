@@ -136,7 +136,9 @@ def _split_html(text):
 
 def parse_page_file(path):
     """Título, introducción y bloques de un archivo .md o .html."""
-    text = Path(path).read_text(encoding='utf-8')
+    # utf-8-sig: admite la firma que añaden algunos editores de Windows (séptima revisión de
+    # Codex, 24-11-2026); sin ella, el «#» del título quedaba dentro de la introducción.
+    text = Path(path).read_text(encoding='utf-8-sig')
     content = _split_markdown(text) if Path(path).suffix == '.md' else _split_html(text)
     for block in content['blocks']:
         if not block['title']:

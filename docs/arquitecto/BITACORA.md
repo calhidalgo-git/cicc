@@ -937,3 +937,25 @@ Hallazgos de `revision-codex-original-7.md` (Carlos aprobó corregir los 8):
 - SQLite (`CICC_DEMO=1`): `No changes detected` · `Ran 153 tests in 172.560s` · `OK`. PostgreSQL 16.16: `No changes detected` · `Ran 153 tests in 183.342s` · `OK`. `check` sin incidencias en ambos.
 - `ruff check .` → `All checks passed!` · `ruff format --check .` → `68 files already formatted`.
 - **Pruebas nuevas** (`hub/tests/test_codex_review_7.py`, 4). Con el código anterior: `FAILED (failures=3, errors=1)`.
+
+## T12 — Correcciones de la séptima revisión de Codex (24-11-2026)
+- Fecha: 2026-11-24
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T12-paginas-del-menu`, en `CICC-local\original\T12`. Merge de T05 con las correcciones de T12: `71584a8`. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+- **Correcciones de T05.** Llegan con el merge `71584a8`. En `hub/models.py`, `Lesson.save()` junta `clean_lesson()` (T12) con `drop_official_key_when_moved()` (T05).
+- **Hallazgo 1 (Alta): volver a la versión anterior del programa.** La guía está en el README, en la sección «Volver a una versión anterior del programa». Se comprobó con una copia de la demo:
+  - Con el programa anterior (`30415f2`), la base llega a 0009 y se hace la copia completa.
+  - Con el programa nuevo, se ejecuta `migrate`.
+  - **Solo revertir** (`migrate hub 0009`) y volver al programa anterior: crear una lección falla (`NOT NULL constraint failed: hub_lesson.official_key`), como encontró Codex.
+  - **Restaurar la copia completa** con el programa anterior: la lección se crea, y quedan 26 páginas y todas las lecciones.
+- **Hallazgo 6 (Baja): Markdown con firma UTF-8.** `parse_page_file` lee con `utf-8-sig`. El título se reconoce con firma y sin ella (`test_codex_review_7_pages.py`).
+- **Hallazgo 8: restos en las pruebas.** `test_section_pages` usa `temp_folder`.
+- **`ARQUITECTURA-OBJETIVO.md`.** `SectionPage` y `SectionBlock` están en la tabla de modelos.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `No changes detected` · `Ran 187 tests in 211.156s` · `OK`. PostgreSQL 16.16: `No changes detected` · `Ran 187 tests in 250.026s` · `OK`. `check` sin incidencias en ambos.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `76 files already formatted`.
+- La huella del `demo.sqlite3` de Carlos no cambió (`333f4566e875e09a`).

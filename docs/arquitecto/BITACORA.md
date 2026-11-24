@@ -1021,3 +1021,27 @@ Ninguna.
   - Con `30415f2`, la copia quedó en 0009.
   - Con la versión nueva, `migrate` aplicó `0008_lesson_official_key` y `0010_merge_lesson_official_key`.
   - Resultado: 26 páginas, 6 rutas y 23 lecciones oficiales marcadas.
+
+## T06 — Correcciones de la sexta revisión de Codex (24-11-2026)
+- Fecha: 2026-11-24
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T06-roles-y-permisos`, en `CICC-local\original\T06`. Merge de T12 con el aviso en español: `ccd2370`. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+- **Correcciones de T05 y T12.** Llegan con el merge `ccd2370`: marca de lección oficial, 0005 sin reconocimiento y posiciones del formulario. Solo hubo conflicto en la bitácora; se conservaron las entradas de ambos lados.
+- **Migración de unión `0013_merge_t12_lesson_official_key`.** Une la rama de T12 (la 0008 de T05 y la 0010 de unión) con la 0012 de T06. No tiene operaciones.
+- **Baja: aviso con nombres internos.** Migración `0014_spanish_names_lesson_progress`: `Lesson` se llama «lección» y `Progress` «avance». Un avance se describe como «ana completó «Semana 1 …»». El formulario de la ruta ya no muestra «Progress object (1)».
+
+### Desviaciones respecto a la tarea
+- Dos migraciones más (0013 y 0014). La 0013 es necesaria porque T05, T12 y T06 agregaron migraciones en paralelo. La 0014 solo cambia nombres visibles y no toca la base.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 214 tests in 209.327s` · `OK`.
+- PostgreSQL 16.16 local (base temporal borrada): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 214 tests in 232.444s` · `OK`.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `80 files already formatted`.
+- **Prueba nueva** (`hub/tests/test_codex_review_6_roles.py`): el aviso menciona «avance» y «alumna completó «A»», y no «Progress object».
+- **Actualización de una base con la T06 anterior** (copia de la demo, worktrees temporales borrados; huella `333f4566e875e09a` sin cambios):
+  - Con `80fcf9f`: `migrate` y `bootstrap_roles`.
+  - Con la versión nueva, `migrate` aplicó 0008, 0010 (unión), 0013 y 0014. Resultado: 26 páginas, 23 lecciones marcadas y 0, 14, 8 y 58 permisos.
+  - `migrate hub 0009` y vuelta: los mismos números.

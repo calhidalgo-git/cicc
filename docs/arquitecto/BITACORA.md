@@ -854,3 +854,26 @@ Ninguna.
   - Al migrar desde 0007, las 23 lecciones oficiales quedan marcadas. `load_courses` → 0. `--force` → 26.
   - Respaldo, `migrate hub 0003` y `migrate`: 6 rutas, ninguna oficial, 0 marcas.
   - `loaddata` del respaldo en la misma base: `Installed 97 object(s)`, los tres cursos en sus direcciones (4, 5 y 6), 23 marcas, 23 lecciones con HTML y 3 vínculos. `load_courses` → 0.
+
+## T12 — Correcciones de la sexta revisión de Codex (24-11-2026)
+- Fecha: 2026-11-24
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T12-paginas-del-menu`, en `CICC-local\original\T12`. Merge de T05: `2d2f92c`. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+- **Correcciones de T05.** Llegan con el merge `2d2f92c`: marca de lección oficial, 0005 sin reconocimiento al revertir y posiciones del formulario de la ruta. Ver la entrada de T05 del mismo día.
+- **Migración de unión `0010_merge_lesson_official_key`.** La 0008 nueva de T05 y las 0008 y 0009 de T12 salen de 0007. La unión no tiene operaciones. Una base con T12 ya aplicada solo añade la 0008 de T05.
+- **Conflictos.** En `hub/admin.py`, T05 ya no usa `Max` y se conserva `Count` de T12. En el README se conservaron el párrafo de las páginas de sección y la guía nueva de T05.
+
+### Desviaciones respecto a la tarea
+- La migración de unión, necesaria porque T05 y T12 agregaron migraciones en paralelo.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 184 tests in 157.697s` · `OK`.
+- PostgreSQL 16.16 local (base temporal borrada): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 184 tests in 198.733s` · `OK`.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `73 files already formatted`.
+- **Actualización de una base con T12 anterior** (copia de la demo, worktrees temporales borrados; huella `333f4566e875e09a` sin cambios):
+  - Con `30415f2`, la copia quedó en 0009.
+  - Con la versión nueva, `migrate` aplicó `0008_lesson_official_key` y `0010_merge_lesson_official_key`.
+  - Resultado: 26 páginas, 6 rutas y 23 lecciones oficiales marcadas.

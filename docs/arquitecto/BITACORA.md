@@ -739,3 +739,27 @@ Hallazgos de `revision-codex-original-4.md` que tocan T05:
 
 ### Observaciones
 - PostgreSQL local se apagó una vez durante la verificación porque faltaba `datos\postmaster.pid`. Se volvió a arrancar con `Iniciar-PostgreSQL.ps1` y las pruebas se repitieron.
+
+## T12 — Correcciones de la cuarta revisión de Codex (24-11-2026)
+- Fecha: 2026-11-24
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T12-paginas-del-menu`, en `CICC-local\original\T12`. Merge de T05 con las correcciones: `b6c84ac`. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+- **Correcciones de T05.** Llegan con el merge `b6c84ac`: ejercicios de bases ya migradas, curso editado frente a copia, recuperación en los dos órdenes, expresiones en `update()`, recurso histórico renombrado e iteradores en `bulk_update()`. Ver la entrada de T05 del mismo día.
+- **Baja: conflicto de integración en el README.** La sección de recuperación tenía marcas de Git del merge `9553baf` y dos versiones del mismo párrafo. Queda una sola: el párrafo de las páginas de sección y la guía de T05 para revertir y restaurar.
+- **Conflicto en `hub/views/management.py`.** `backup_json()` ordena cada modelo por número interno (T05) y conserva `RELATED` con `select_related` (T12): el respaldo sigue sin una consulta por fila.
+
+### Desviaciones respecto a la tarea
+Ninguna.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 169 tests in 166.300s` · `OK`.
+- PostgreSQL 16.16 local (modo producción, base temporal `cicc_rev4_t12` borrada al terminar): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 169 tests in 190.010s` · `OK`.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `71 files already formatted`.
+- `test_backup_queries.py` sigue pasando: el número de consultas del respaldo no crece con los bloques.
+- **Copia de la demo de Carlos** (worktree temporal `CICC-local\tmp-rev4-t12`, borrado; huella `333f4566e875e09a` sin cambios): `migrate` dejó 6 rutas, 39 lecciones, 23 con HTML, 3 vínculos y 26 páginas. Tras `migrate hub 0003`, `migrate`, `--relink` (3) y `--force` (26), los mismos números. Las 7 pantallas de gestión respondieron 200 al administrador.
+
+### Preguntas para el arquitecto
+Ninguna.

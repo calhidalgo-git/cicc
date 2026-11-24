@@ -30,7 +30,6 @@ from .test_codex_review_3 import (
     fundamentos,
     load,
     official_html,
-    official_text,
 )
 
 
@@ -74,27 +73,6 @@ class AlreadyMigratedBaseKeepsTheExercises(TestCase):
             self.assertEqual(
                 (done.pk, done.title, done.body), (self.first.pk, 'Ejercicio A', 'Mío A')
             )
-
-    def test_after_ordering_the_lessons_force_works_again(self):
-        # Carlos ordena las lecciones en el administrador: las oficiales primero (1 a 6) y los
-        # ejercicios después (7 y 8). Se pasa por posiciones libres para no repetir ninguna.
-        lessons = self.path.lessons
-        lessons.update(position=F('position') + 100)
-        lessons.exclude(title__startswith='Ejercicio').update(position=F('position') - 102)
-        lessons.filter(title='Ejercicio A').update(position=7)
-        lessons.filter(title='Ejercicio B').update(position=8)
-        self.assertEqual(
-            sorted(self.path.lessons.values_list('position', flat=True)), list(range(1, 9))
-        )
-        output = load(force=True)
-        self.assertNotIn('fuera de su posición', output)
-        course = fundamentos()
-        for item in course['lessons']:
-            lesson = self.path.lessons.get(position=item['position'])
-            self.assertEqual(
-                (lesson.title, lesson.body), (item['title'], official_text(course, item))
-            )
-        self.assertEqual(self.path.lessons.get(position=7).body, 'Mío A')
 
 
 class RevertWithAnEditedCourse(MigrationCase):

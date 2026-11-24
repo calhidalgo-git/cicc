@@ -106,7 +106,7 @@ class PracticeWithARepeatedTitle(TestCase):
             path=path, position=7, title=course['lessons'][0]['title'], body='Mi práctica'
         )
         output = load()
-        self.assertNotIn('fuera de su posición', output)
+        self.assertNotIn('la ocupa una lección propia', output)
         self.assertIn('lecciones creadas: 1', output)
         self.assertEqual(path.lessons.get(position=2).title, course['lessons'][1]['title'])
         practice.refresh_from_db()

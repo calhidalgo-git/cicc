@@ -6,7 +6,8 @@ from hub.services.courses import load_courses, relink_legacy_resources
 class Command(BaseCommand):
     help = (
         'Carga los cursos de hub/content/courses/ como rutas de aprendizaje. Crea las rutas y '
-        'lecciones que falten (por slug y posición) sin tocar lo existente, salvo con --force. '
+        'lecciones oficiales que falten, sin tocar lo existente. Con --force reescribe solo las '
+        'lecciones con marca de lección oficial; una lección propia nunca se reescribe. '
         'Al crear un curso, o con --force, vincula los recursos que lo abrían antes de T05. '
         'Con --relink solo vincula esos recursos, si no abren ninguna ruta.'
     )
@@ -16,7 +17,10 @@ class Command(BaseCommand):
         mode.add_argument(
             '--force',
             action='store_true',
-            help='Reescribe también las rutas y lecciones existentes con el contenido incluido.',
+            help=(
+                'Reescribe también los cursos oficiales y sus lecciones con marca de lección '
+                'oficial. Las lecciones propias no se tocan.'
+            ),
         )
         mode.add_argument(
             '--relink',

@@ -929,3 +929,30 @@ Ninguna.
 - PostgreSQL 16.16 local (base temporal borrada): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 175 tests in 176.031s` · `OK`.
 - `ruff check .` → `All checks passed!` · `ruff format --check .` → `72 files already formatted`.
 - README: una sola sección «Revertir las migraciones de cursos», un solo «Límites conocidos» y ninguna marca de conflicto.
+
+## T06 — Correcciones de la quinta revisión de Codex (24-11-2026)
+- Fecha: 2026-11-24
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code)
+- Rama y pull request: `tarea/T06-roles-y-permisos`, en `CICC-local\original\T06`. Merge de T12: `060ddd3`. Commit de código `649f89c`. Sin publicar.
+- Estado: En revisión
+
+### Qué se corrigió
+- **Correcciones de T05 y T12.** Llegan con el merge `060ddd3`. Solo hubo conflicto en la bitácora; se conservaron las entradas de ambos lados.
+- **Alta: quitar una lección desde su ruta borraba su avance.** `Progress.lesson` pasa a `on_delete=PROTECT` (migración `0012_progress_protects_lesson`).
+  - Al marcar «Eliminar» en una lección con avances, el formulario de la ruta muestra el error de objetos protegidos de Django y no guarda nada.
+  - Borrar la lección o la ruta tampoco borra avances.
+  - Una lección sin avances se sigue quitando.
+- **Media: una base con la 0010 original no se podía actualizar.** Se quitó de la 0010 la dependencia de `auth` 0012 que se había agregado en la cuarta corrección. El paso de reversión solo usa `Permission`, que existe desde la primera migración de `auth`.
+
+### Desviaciones respecto a la tarea
+- **Migración nueva 0012** en `Progress` (T05). Es parte de la decisión de Carlos sobre el avance, por eso va en T06. Solo cambia la regla de borrado: en la base no se crea ni se quita ninguna columna.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 201 tests in 181.113s` · `OK`.
+- PostgreSQL 16.16 local (base temporal borrada): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 201 tests in 205.968s` · `OK`.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `78 files already formatted`.
+- **Pruebas nuevas** (`hub/tests/test_codex_review_5_roles.py`, 4). Con el código anterior: `FAILED (failures=2)`, las del formulario de la ruta y la actualización desde la 0010 original. Las otras dos comprueban que el borrado de la lección o la ruta sigue impedido y que una lección sin avances se puede quitar.
+- **Copia de la demo de Carlos** (worktree temporal borrado; huella `333f4566e875e09a` sin cambios):
+  - Migración completa y `bootstrap_roles`: 6 rutas, 39 lecciones, 26 páginas y 0, 14, 8 y 58 permisos.
+  - `migrate hub 0009`: catálogo sin los dos permisos.
+  - `migrate hub 0003` y `migrate`, `--relink` (3), `--force` (26) y `bootstrap_roles`: otra vez 0, 14, 8 y 58, y los mismos datos.

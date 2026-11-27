@@ -131,6 +131,10 @@ Para volver atrás, instala la versión anterior del programa y restaura esa cop
 - Si otro recurso ya abre un curso, `load_courses --relink` no vincula el recurso histórico de ese curso. Asígnalo en el administrador.
 - Las comprobaciones de la dirección oficial en las operaciones en lote hechas desde código (`update()`) no cubren una ruta creada al mismo tiempo desde otra conexión. Las pantallas y los comandos no hacen esas operaciones.
 
+## Documentación del área como cursos
+
+`import_docs` carga una carpeta de documentos en Markdown como rutas de aprendizaje para personas nuevas. Las contraseñas y las imágenes se guardan cifradas con `CICC_DATA_KEY`. El contenido real y su manifiesto se quedan fuera del repositorio. Consulta [docs/IMPORTAR-DOCUMENTACION.md](docs/IMPORTAR-DOCUMENTACION.md).
+
 ## Qué puedes probar
 
 1. Ingresa como ana; busca «batch», filtra Mainframe y abre la versión 2 de una guía. Descarga el archivo protegido.

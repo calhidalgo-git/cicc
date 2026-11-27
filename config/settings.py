@@ -62,6 +62,10 @@ CSRF_TRUSTED_ORIGINS = env_list('CICC_CSRF_TRUSTED_ORIGINS')
 # Se sirve por HTTPS (normalmente detrás de un proxy inverso que termina el certificado).
 CICC_HTTPS = env_bool('CICC_HTTPS', False)
 
+# Clave Fernet que cifra credenciales y adjuntos del contenido importado (hub/services/crypto.py).
+# Va en .env, nunca en el repositorio. Sin ella el contenido cifrado no se puede leer.
+CICC_DATA_KEY = os.environ.get('CICC_DATA_KEY', '').strip()
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',

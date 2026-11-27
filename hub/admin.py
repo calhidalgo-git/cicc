@@ -7,10 +7,12 @@ from .models import (
     Audit,
     LearningPath,
     Lesson,
+    PrivateAsset,
     Progress,
     Question,
     Resource,
     ResourceVersion,
+    Secret,
     SectionBlock,
     SectionPage,
 )
@@ -222,6 +224,23 @@ class ProgressAdmin(ReadOnlyAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(Secret)
+class SecretAdmin(ReadOnlyAdmin):
+    """Solo se ve el origen: el valor cifrado nunca aparece en el administrador."""
+
+    list_display = ('pk', 'context', 'created')
+    search_fields = ('context',)
+    fields = ('context', 'created')
+    readonly_fields = ('context', 'created')
+
+
+@admin.register(PrivateAsset)
+class PrivateAssetAdmin(ReadOnlyAdmin):
+    list_display = ('key', 'content_type', 'size', 'created')
+    fields = ('key', 'content_type', 'size', 'created')
+    readonly_fields = fields
 
 
 for model in [ResourceVersion, Lesson]:

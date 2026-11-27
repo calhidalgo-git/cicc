@@ -16,6 +16,7 @@ from .learning import (
 from .library import download, resource
 from .management import backup, excel_template, import_excel, report
 from .pages import page
+from .private import private_asset, reveal_secret
 
 __all__ = [
     'NAV',
@@ -30,6 +31,8 @@ __all__ = [
     'import_excel',
     'lesson_detail',
     'page',
+    'private_asset',
+    'reveal_secret',
     'path_detail',
     'qa_advanced',
     'qa_advanced_week',

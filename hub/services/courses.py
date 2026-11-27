@@ -36,11 +36,16 @@ ALLOWED_TAGS = {
     'hr',
     'span',
     'div',
+    # Imágenes del contenido importado: solo las cifradas que sirve /privado/<key>/.
+    'img',
 }
 ALLOWED_ATTRIBUTES = {
     '*': {'class'},
     'a': {'href', 'title'},
+    'img': {'src', 'alt'},
 }
+PRIVATE_SRC_RE = re.compile(r'^/privado/[0-9a-f]{64}/$')
+_IMG_WITHOUT_SRC_RE = re.compile(r'<img(?![^>]*\ssrc=)[^>]*>')
 URL_SCHEMES = {'http', 'https', 'mailto'}
 
 _TAG_RE = re.compile(r'<[^>]+>')
@@ -51,12 +56,22 @@ def sanitize_html(value):
     """HTML limitado a la lista permitida (D5). Elimina scripts, estilos y atributos de eventos."""
     if not value:
         return ''
-    return nh3.clean(
+    cleaned = nh3.clean(
         value,
         tags=ALLOWED_TAGS,
         attributes=ALLOWED_ATTRIBUTES,
         url_schemes=URL_SCHEMES,
+        attribute_filter=_filter_attribute,
     )
+    # Una imagen que perdió su fuente no se deja vacía: se quita entera.
+    return _IMG_WITHOUT_SRC_RE.sub('', cleaned)
+
+
+def _filter_attribute(tag, attribute, value):
+    """Una imagen solo puede apuntar a un adjunto cifrado propio; cualquier otra fuente se quita."""
+    if tag == 'img' and attribute == 'src' and not PRIVATE_SRC_RE.match(value):
+        return None
+    return value
 
 
 def html_to_text(value):

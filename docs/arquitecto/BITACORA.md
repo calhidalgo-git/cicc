@@ -1170,3 +1170,36 @@ Hallazgos de `revision-codex-original-7.md` (Carlos aprobó corregir los 8):
 ### Verificación
 - SQLite (`CICC_DEMO=1`): `No changes detected` · `Ran 215 tests in 245.864s` · `OK`. PostgreSQL 16.16: `No changes detected` · `Ran 215 tests in 241.792s` · `OK`. `check` sin incidencias en ambos.
 - `ruff check .` → `All checks passed!` · `ruff format --check .` → `83 files already formatted`.
+## Contenido del área como cursos, con credenciales e imágenes cifradas (fuera del plan)
+- Fecha: 2026-11-26
+- Modelo / herramienta: Claude Opus 5.5 (Claude Code), a pedido de Rafael
+- Rama y pull request: `contenido-bn`, creada desde `origin/tarea/T06-roles-y-permisos` (incluye T05 y T12). Commit local, sin publicar.
+- Estado: En revisión
+
+### Qué se hizo
+- `import_docs <manifiesto>` (`hub/services/docs_import.py`) carga una carpeta de documentos Markdown como rutas de aprendizaje, en el orden de un manifiesto JSON. Los documentos y el manifiesto quedan **fuera del repositorio**.
+- Las contraseñas detectadas salen del texto y se cifran con Fernet en el modelo `Secret`. La lección guarda la marca `⟦secreto:N⟧`, que el filtro `protect_secrets` muestra como botón. `POST /secreto/<pk>/` la revela solo con `hub.view_secret`, y cada consulta se audita.
+- Las imágenes se cifran en el modelo `PrivateAsset` (`private_storage/assets/`) y se sirven solo con sesión por `/privado/<sha256>/`. El saneado admite `img` únicamente con esa fuente.
+- La clave `CICC_DATA_KEY` va en `.env` y se genera con `generate_data_key`. `view_secret` se asignó a Editor y Evaluador; Administrador ya recibe todos los permisos.
+- Migración `0015_protected_content` (solo crea tablas, es reversible). Guía en `docs/IMPORTAR-DOCUMENTACION.md`.
+- Carga local hecha: 11 rutas, 138 lecciones, 796 imágenes cifradas y 31 datos protegidos.
+
+### Desviaciones respecto a la tarea
+- Dependencias fuera de la sección 8: `cryptography>=44,<47` (cifrado) y `markdown>=3.7,<4` (tablas y bloques de código de los documentos). Las dos son compatibles con Django 5.2 y Python 3.12/3.13.
+- Se agregó `img` a la lista de etiquetas de T05, restringida a `/privado/<sha256>/`. T05 pedía consultarlo con el arquitecto.
+- Se cambió `hub/tests/test_roles.py`: Editor y Evaluador reciben `view_secret`. Es un cambio de comportamiento intencional.
+
+### Verificación
+- SQLite (`CICC_DEMO=1`): `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 225 tests in 228.801s` · `OK`.
+- `ruff check .` → `All checks passed!` · `ruff format --check .` → `92 files already formatted`.
+- Manual: ningún valor conocido de contraseña queda en `Lesson.body_html` ni en `Lesson.body`. El adjunto en disco empieza con `gAAAAA` (Fernet), no con la firma PNG. Participante: 🔒 y 403; Editor: botón y 200 con auditoría. Sin sesión, `/privado/` responde 302.
+- `git diff` no contiene dominios, IP ni contraseñas de la organización.
+- No se ejecutó en PostgreSQL.
+
+### Preguntas para el arquitecto
+- ¿Se aprueban las dos dependencias nuevas y la etiqueta `img`?
+- ¿El Participante debe ver credenciales de prueba? Hoy no tiene `view_secret`.
+
+### Observaciones
+- La detección de claves es por patrones. Las claves sin etiqueta se agregan a la lista `protect` del manifiesto.
+- Si se pierde `CICC_DATA_KEY`, las claves y las imágenes cifradas no se pueden recuperar.

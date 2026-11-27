@@ -15,6 +15,8 @@ urlpatterns = [
     path('qa/avanzado/semana/<int:week>/', v.qa_advanced_week, name='qa_advanced_week'),
     path('qa/fundamentos/', v.qa_fundamentals, name='qa_fundamentals'),
     path('qa/fundamentos/semana/<int:week>/', v.qa_week, name='qa_week'),
+    path('privado/<str:key>/', v.private_asset, name='private_asset'),
+    path('secreto/<int:pk>/', v.reveal_secret, name='reveal_secret'),
     path('login/', auth.LoginView.as_view(template_name='login.html')),
     path('logout/', auth.LogoutView.as_view()),
     path('', v.page, name='home'),

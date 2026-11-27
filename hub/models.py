@@ -331,6 +331,58 @@ class Audit(models.Model):
         indexes = [models.Index(fields=['created'], name='hub_audit_created_idx')]
 
 
+class Secret(models.Model):
+    """Dato sensible (contraseña, clave) extraído del contenido importado y guardado cifrado.
+
+    El texto de la lección solo conserva la marca ``⟦secreto:<pk>⟧``; el valor se descifra al
+    pedirlo quien tiene ``hub.view_secret``, y cada consulta queda en la auditoría.
+    """
+
+    fingerprint = models.CharField(max_length=64, unique=True, editable=False)
+    ciphertext = models.BinaryField(editable=False)
+    context = models.CharField(max_length=200, verbose_name='origen')
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'dato protegido'
+        verbose_name_plural = 'datos protegidos'
+
+    def reveal(self):
+        from .services.crypto import decrypt
+
+        return decrypt(bytes(self.ciphertext)).decode('utf-8')
+
+    def __str__(self):
+        return f'Dato protegido {self.pk} · {self.context}'
+
+
+class PrivateAsset(models.Model):
+    """Imagen u otro adjunto del contenido importado, cifrado en private_storage.
+
+    ``key`` es el SHA-256 del contenido original: el mismo archivo se guarda una sola vez.
+    Solo se sirve a usuarios autenticados por /privado/<key>/.
+    """
+
+    key = models.CharField(max_length=64, unique=True)
+    content_type = models.CharField(max_length=100)
+    file = models.FileField(upload_to='assets/')
+    size = models.PositiveIntegerField(default=0)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'adjunto cifrado'
+        verbose_name_plural = 'adjuntos cifrados'
+
+    def read(self):
+        from .services.crypto import decrypt
+
+        with self.file.open('rb') as handle:
+            return decrypt(handle.read())
+
+    def __str__(self):
+        return self.key
+
+
 class SectionPageManager(models.Manager):
     def get_by_natural_key(self, slug):
         return self.get(slug=slug)

@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static protected %}
 {% comment %}Lección de una ruta: mismo diseño que tenían las semanas y temas de los cursos.{% endcomment %}
 {% block content %}
 <a href="{% url 'path_detail' path.slug %}" class="eyebrow">← VOLVER A {{ path.title|upper }}</a>
@@ -9,7 +10,7 @@
   </div>
 </div>
 <article class="panel qa-week-content">
-  {% if lesson.body_html %}{{ lesson.body_html|safe }}{% else %}<p class="lesson-body">{{ lesson.body|linebreaksbr }}</p>{% endif %}
+  {% if lesson.body_html %}{{ lesson.body_html|protect_secrets:user }}{% else %}<p class="lesson-body">{{ lesson.body|linebreaksbr }}</p>{% endif %}
 </article>
 <div class="section-heading">
   {% if lesson_done %}
@@ -27,3 +28,4 @@
 {% if item.pk != lesson.pk %}<a class="resource-row" href="{% url 'lesson_detail' path.slug item.position %}"><span class="file-icon">▤</span><div><h3>{{ item.title }}</h3></div>{% if item.pk in done %}<span class="pill green">✓ Completada</span>{% endif %}<span>→</span></a>{% endif %}
 {% endfor %}
 {% endblock %}
+{% block scripts %}<script src="{% static 'secrets.js' %}"></script>{% endblock %}

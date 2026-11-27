@@ -21,11 +21,14 @@ ROLES = {
         # T12: la teoría de las páginas del menú (los bloques se editan con la página).
         'view_sectionpage',
         'change_sectionpage',
+        # Credenciales del contenido importado (hub/services/docs_import.py).
+        'view_secret',
     ],
     'Evaluador': [
         *crud('question', 'assessment'),
         'view_audit',
         'view_reports',
+        'view_secret',
     ],
 }
 ADMINISTRATOR = 'Administrador'

@@ -97,7 +97,9 @@ class BootstrapRoles(TestCase):
                 for model in ('resource', 'resourceversion', 'learningpath', 'lesson')
                 for action in ('view', 'add', 'change')
             }
-            | {'view_sectionpage', 'change_sectionpage'},
+            | {'view_sectionpage', 'change_sectionpage'}
+            # Credenciales cifradas del contenido importado (docs/IMPORTAR-DOCUMENTACION.md).
+            | {'view_secret'},
         )
         self.assertEqual(
             {code for _, code in permissions_of('Evaluador')},
@@ -106,7 +108,7 @@ class BootstrapRoles(TestCase):
                 for model in ('question', 'assessment')
                 for action in ('view', 'add', 'change')
             }
-            | {'view_audit', 'view_reports'},
+            | {'view_audit', 'view_reports', 'view_secret'},
         )
         self.assertEqual(
             permissions_of('Administrador'),

@@ -2,3 +2,5 @@ Django>=5.2,<5.3
 psycopg[binary]>=3.2,<4
 openpyxl>=3.1,<4
 nh3>=0.3,<0.4
+cryptography>=44,<47
+markdown>=3.7,<4
